@@ -1,0 +1,4 @@
+# LinkedPulse Backend Dependencies
+# Free-Tier Production & PostgreSQL Engine
+psycopg2-binary>=2.9.9
+requests>=2.31.0

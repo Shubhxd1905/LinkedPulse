@@ -1,0 +1,15 @@
+.env
+*.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.db.bak
+*.sqlite
+*.sqlite3
+linkedpulse.db
+linkedpulse.db.bak
+__pycache__/
+*.py[cod]
+venv/
+.venv/

@@ -1,0 +1,33 @@
+# Render Blueprint Specification for LinkedPulse
+# Free-Tier Hosting (₹0/month)
+# Combines React Frontend (built via Corepack/pnpm) & Python REST API on a single origin
+
+services:
+  - type: web
+    name: linkedpulse
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: "cd frontend/linkedin-post-studio && corepack enable && pnpm install --frozen-lockfile && pnpm run build && cd ../../backend/linkedin-optimizer && pip install -r requirements.txt"
+    startCommand: "cd backend/linkedin-optimizer && python server.py"
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.10.12
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: STATIC_DIR
+        value: ../../frontend/linkedin-post-studio/dist
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false # Connect Supabase PostgreSQL connection string in Render Dashboard
+      - key: OPENROUTER_API_KEY
+        sync: false # Set OpenRouter free API key in Render Dashboard
+      - key: FRONTEND_URL
+        sync: false # Optional: Set to https://linkedpulse.onrender.com or leave unset for same-origin
+      - key: RESEND_API_KEY
+        sync: false # Optional: Set Resend free API key for password reset emails
