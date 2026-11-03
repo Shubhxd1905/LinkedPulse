@@ -5,7 +5,7 @@
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 COPY frontend/linkedin-post-studio/package.json frontend/linkedin-post-studio/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 

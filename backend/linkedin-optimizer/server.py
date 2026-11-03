@@ -30,11 +30,11 @@ import linkedin_service
 import database
 import auth_service
 
-# Initialize database schema and migrations on startup
-database.init_db()
-
 # Load environment configuration (.env)
 load_env_vars()
+
+# Initialize database schema and migrations on startup
+database.init_db()
 
 PORT = int(os.environ.get("PORT", 8000))
 HOST = os.environ.get("HOST", "0.0.0.0")
