@@ -100,15 +100,15 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
   if (stateMode === 'error') {
     return (
       <div className="py-12 animate-fade-in max-w-xl mx-auto">
-        <Card className="border-red-200 dark:border-red-900/50">
+        <Card className="border-red-400/30">
           <CardContent className="py-12 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 mb-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20 border border-red-400/30 text-red-300 mb-4">
               <AlertCircle className="h-7 w-7" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-xl font-bold text-white mb-2">
               Failed to load saved drafts
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-sm mx-auto mb-6">
+            <p className="text-sm text-slate-200 max-w-sm mx-auto mb-6">
               Could not retrieve stored drafts from local repository cache.
             </p>
             {onStateModeChange && (
@@ -127,10 +127,10 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
     return (
       <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             Saved Drafts & Post History
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-200 mt-1">
             Access and manage your generated content pipeline.
           </p>
         </div>
@@ -138,7 +138,7 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
         <Card>
           <CardContent className="py-16 text-center">
             <EmptyState
-              icon={<FolderOpen className="h-14 w-14 text-slate-300 dark:text-slate-600" />}
+              icon={<FolderOpen className="h-14 w-14 text-slate-300" />}
               title="No Drafts Saved Yet"
               description="Your saved drafts and scheduled posts will appear here. Create your first post using our AI Post Studio."
               action={{
@@ -162,14 +162,14 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
               Saved Drafts & Post History
             </h1>
             <Badge variant="linkedin" size="sm">
               {posts.length} Items
             </Badge>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-200 mt-1">
             Manage your content pipeline, review scheduled drops, and track publication history.
           </p>
         </div>
@@ -183,49 +183,49 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
 
       {/* Summary KPI Counters */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="hover:border-slate-300 transition-colors">
+        <Card className="hover:border-white/25 transition-colors">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                 Work-in-Progress Drafts
               </span>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
+              <p className="text-2xl font-bold text-white mt-1">
                 {posts.filter((p) => p.status === 'draft').length}
               </p>
             </div>
-            <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-amber-500/20 border border-amber-400/30 text-amber-300 flex items-center justify-center">
               <FolderOpen className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:border-slate-300 transition-colors">
+        <Card className="hover:border-white/25 transition-colors">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                 Scheduled Drops
               </span>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
+              <p className="text-2xl font-bold text-white mt-1">
                 {posts.filter((p) => p.status === 'scheduled').length || 1}
               </p>
             </div>
-            <div className="h-10 w-10 rounded-xl bg-blue-50 text-[#0a66c2] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-sky-500/20 border border-sky-400/30 text-sky-300 flex items-center justify-center">
               <Calendar className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:border-slate-300 transition-colors">
+        <Card className="hover:border-white/25 transition-colors">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                 Published Posts
               </span>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
+              <p className="text-2xl font-bold text-white mt-1">
                 {posts.filter((p) => p.status === 'published').length}
               </p>
             </div>
-            <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center justify-center">
               <Send className="h-5 w-5" />
             </div>
           </CardContent>
@@ -249,8 +249,8 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
                   onClick={() => setStatusFilter(tab.id as typeof statusFilter)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
                     statusFilter === tab.id
-                      ? 'bg-[#0a66c2] text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                      ? 'bg-indigo-500 text-white shadow-sm'
+                      : 'bg-white/10 text-slate-200 hover:bg-white/15 hover:text-white border border-white/10'
                   }`}
                 >
                   {tab.label}
@@ -260,7 +260,7 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
 
             {/* Search Input */}
             <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-300 z-10" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -295,7 +295,7 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
           {filteredPosts.map((post) => (
             <Card
               key={post.id}
-              className="flex flex-col justify-between hover:border-[#0a66c2]/40 transition-all duration-200 shadow-sm"
+              className="flex flex-col justify-between hover:border-indigo-400/50 transition-all duration-200 shadow-sm"
             >
               <CardContent className="p-5 flex flex-col justify-between h-full">
                 <div>
@@ -314,7 +314,7 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
                     >
                       {post.status}
                     </Badge>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-slate-300">
                       {new Date(post.createdAt).toLocaleDateString(undefined, {
                         month: 'short',
                         day: 'numeric',
@@ -324,12 +324,12 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
                   </div>
 
                   {/* Hook / Headline */}
-                  <p className="text-xs font-bold text-slate-900 dark:text-white mb-2 line-clamp-2">
+                  <p className="text-xs font-bold text-white mb-2 line-clamp-2">
                     {post.hook || post.content.slice(0, 50)}
                   </p>
 
                   {/* Body preview */}
-                  <p className="text-xs text-slate-600 dark:text-slate-300 font-sans leading-relaxed whitespace-pre-wrap line-clamp-5">
+                  <p className="text-xs text-slate-200 font-sans leading-relaxed whitespace-pre-wrap line-clamp-5">
                     {post.content}
                   </p>
 
@@ -338,7 +338,7 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
                     {post.hashtags.map((tag) => (
                       <span
                         key={tag}
-                        className="text-[10px] font-medium text-[#0a66c2] dark:text-blue-400"
+                        className="text-[10px] font-medium text-sky-300"
                       >
                         #{tag}
                       </span>
@@ -347,19 +347,19 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
                 </div>
 
                 {/* Footer Controls */}
-                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <span className="text-[11px] capitalize font-semibold text-slate-400">
+                <div className="mt-5 pt-3 border-t border-white/15 flex items-center justify-between">
+                  <span className="text-[11px] capitalize font-semibold text-slate-300">
                     {post.tone} • {post.content.split(/\s+/).length} words
                   </span>
 
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handleCopy(post.content, post.id)}
-                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className="p-1.5 rounded-lg border border-white/15 text-slate-200 hover:bg-white/10 hover:text-white transition-colors"
                       title="Copy to Clipboard"
                     >
                       {copiedId === post.id ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-500" />
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}
@@ -368,7 +368,7 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
                     <Link
                       to="/post-studio"
                       state={{ editPost: post }}
-                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className="p-1.5 rounded-lg border border-white/15 text-slate-200 hover:bg-white/10 hover:text-white transition-colors"
                       title="Edit in Post Studio"
                     >
                       <Edit className="h-3.5 w-3.5" />
@@ -376,7 +376,7 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
 
                     <button
                       onClick={() => setDeletingPostId(post.id)}
-                      className="p-1.5 rounded-lg border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                      className="p-1.5 rounded-lg border border-rose-400/30 text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 transition-colors"
                       title="Delete Draft"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -394,10 +394,10 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
         isOpen={!!deletingPostId}
         onClose={() => setDeletingPostId(null)}
         title="Delete Post Draft?"
-        description="Are you sure you want to remove this draft? This mock action cannot be undone."
+        description="Are you sure you want to remove this draft? This action cannot be undone."
       >
         <div className="space-y-4 pt-2">
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/15">
             <Button variant="outline" size="sm" onClick={() => setDeletingPostId(null)}>
               Cancel
             </Button>
@@ -410,3 +410,4 @@ export function DraftsHistoryPage({ stateMode = 'normal', onStateModeChange }: D
     </div>
   )
 }
+

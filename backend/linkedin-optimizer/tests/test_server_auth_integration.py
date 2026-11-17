@@ -199,6 +199,57 @@ class TestServerAuthIntegration(unittest.TestCase):
         status, after_logout = self._get("/api/auth/me", headers=alex_headers)
         self.assertEqual(status, 401)
 
+    def test_guest_blocked_from_feature_endpoints(self):
+        for endpoint, payload in [
+            ("/api/ai/optimize-profile", {"headline": "Test Headline"}),
+            ("/api/ai/generate-post-from-image", {"imageBase64": "data:image/png;base64,iVBOR"}),
+            ("/api/generate-post", {"topic": "Career Growth"}),
+            ("/api/analyze-profile", {"headline": "Test Headline"}),
+        ]:
+            status, body, _ = self._post(endpoint, payload)
+            self.assertEqual(status, 401, f"Expected 401 for unauthenticated POST {endpoint}")
+            self.assertEqual(body.get("code"), "UNAUTHORIZED")
+
+    def test_import_local_data_large_payload_and_legacy_ids_isolated(self):
+        # Register two users that both import overlapping mock draft IDs and a large payload (> 64 KB)
+        u1_headers = self._register_and_auth("importer1")
+        u2_headers = self._register_and_auth("importer2")
+
+        large_note = "A" * 70_000
+        drafts = [
+            {"id": "post-1", "content": f"Draft one {large_note}", "topic": "AI", "tone": "tech"},
+            {"id": "post-2", "content": "Draft two content", "topic": "Career", "tone": "story"},
+        ]
+
+        s1, res1, _ = self._post("/api/user/import-local", {"drafts": drafts}, headers=u1_headers)
+        self.assertEqual(s1, 200)
+        self.assertEqual(res1.get("status"), "success")
+        self.assertEqual(res1["imported"]["draftsCount"], 2)
+
+        s2, res2, _ = self._post("/api/user/import-local", {"drafts": drafts}, headers=u2_headers)
+        self.assertEqual(s2, 200)
+        self.assertEqual(res2.get("status"), "success")
+        self.assertEqual(res2["imported"]["draftsCount"], 2)
+
+        _, list1 = self._get("/api/user/drafts", headers=u1_headers)
+        _, list2 = self._get("/api/user/drafts", headers=u2_headers)
+        self.assertEqual(len(list1["drafts"]), 2)
+        self.assertEqual(len(list2["drafts"]), 2)
+        self.assertNotEqual(
+            {d["id"] for d in list1["drafts"]},
+            {d["id"] for d in list2["drafts"]},
+        )
+
+    def _register_and_auth(self, prefix):
+        email = f"{prefix}_{uuid.uuid4().hex[:6]}@example.com"
+        status, reg, _ = self._post("/api/auth/register", {
+            "name": f"Test {prefix}",
+            "email": email,
+            "password": "TestPassword2026!"
+        })
+        self.assertEqual(status, 201)
+        return {"Authorization": f"Bearer {reg['sessionToken']}"}
+
 
 if __name__ == "__main__":
     unittest.main()

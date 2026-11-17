@@ -9,9 +9,9 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = 'default', padding = 'md', children, ...props }, ref) => {
     const variants = {
-      default: 'bg-white dark:bg-slate-800 border border-border rounded-xl',
-      bordered: 'bg-white dark:bg-slate-800 border-2 border-border rounded-xl',
-      elevated: 'bg-white dark:bg-slate-800 rounded-xl shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50',
+      default: 'glass rounded-2xl',
+      bordered: 'glass rounded-2xl ring-1 ring-white/20',
+      elevated: 'glass-lg rounded-2xl glow-indigo',
     }
 
     const paddings = {
@@ -33,14 +33,14 @@ Card.displayName = 'Card'
 
 const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('pb-4 border-b border-border', className)} {...props} />
+    <div ref={ref} className={cn('pb-4 border-b border-white/10', className)} {...props} />
   )
 )
 CardHeader.displayName = 'CardHeader'
 
 const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <h3 ref={ref} className={cn('text-lg font-bold text-slate-900 dark:text-slate-50', className)} {...props} />
+    <h3 ref={ref} className={cn('text-lg font-bold text-white', className)} {...props} />
   )
 )
 CardTitle.displayName = 'CardTitle'

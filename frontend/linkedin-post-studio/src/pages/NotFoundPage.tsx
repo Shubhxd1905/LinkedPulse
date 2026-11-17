@@ -4,16 +4,16 @@ import { Button } from '@/components/ui/Button'
 
 export function NotFoundPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-12">
-      <div className="max-w-md w-full text-center space-y-6">
-        <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-blue-50 text-[#0a66c2] dark:bg-blue-950/40 dark:text-blue-400 font-extrabold text-3xl shadow-sm">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="max-w-md w-full text-center space-y-6 glass-lg rounded-3xl p-8">
+        <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 font-extrabold text-3xl shadow-sm">
           404
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-extrabold text-white">
             Page Not Found
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-slate-200">
             The page you are looking for does not exist or has been moved.
           </p>
         </div>
@@ -33,3 +33,4 @@ export function NotFoundPage() {
     </div>
   )
 }
+

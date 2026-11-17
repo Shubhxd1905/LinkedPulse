@@ -9,12 +9,12 @@ interface BadgeProps {
 
 export function Badge({ children, variant = 'default', size = 'sm', className }: BadgeProps) {
   const variants = {
-    default: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
-    success: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    warning: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    error: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    info: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    linkedin: 'bg-linkedin-light text-linkedin dark:bg-linkedin/20 dark:text-linkedin-400',
+    default: 'bg-white/12 text-slate-100 border border-white/15',
+    success: 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/30',
+    warning: 'bg-amber-500/20 text-amber-200 border border-amber-400/30',
+    error: 'bg-rose-500/20 text-rose-200 border border-rose-400/30',
+    info: 'bg-indigo-500/25 text-indigo-200 border border-indigo-400/30',
+    linkedin: 'bg-sky-500/20 text-sky-200 border border-sky-400/30',
   }
 
   const sizes = {
@@ -35,3 +35,4 @@ export function Badge({ children, variant = 'default', size = 'sm', className }:
     </span>
   )
 }
+

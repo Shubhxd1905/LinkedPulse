@@ -3,6 +3,14 @@
 @tailwind utilities;
 
 :root {
+  /* Glass design tokens */
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-bg-hover: rgba(255, 255, 255, 0.14);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --glass-glow: rgba(99, 102, 241, 0.25);
+
+  /* Brand */
   --brand-50: #f0f7ff;
   --brand-100: #e0effe;
   --brand-500: #0a66c2;
@@ -34,12 +42,59 @@
   --text-tertiary: #64748b;
 }
 
+/* ─── GLASSMORPHISM GLOBAL BACKGROUND ─── */
+html {
+  min-height: 100%;
+}
+
 body {
   font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
-  background-color: var(--surface-secondary);
-  color: var(--text-primary);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 40%, #24243e 70%, #0f0c29 100%);
+  background-attachment: fixed;
+  color: #f8fafc;
+  transition: color 0.2s ease;
+}
+
+select option {
+  background-color: #16133a;
+  color: #f8fafc;
+}
+
+/* Animated background orbs */
+body::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: -10%;
+  width: 60vw;
+  height: 60vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: orb-drift 18s ease-in-out infinite alternate;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -15%;
+  right: -10%;
+  width: 50vw;
+  height: 50vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: orb-drift 22s ease-in-out infinite alternate-reverse;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
 }
 
 /* Custom scrollbar */
@@ -48,30 +103,30 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--surface-secondary);
+  background: rgba(255, 255, 255, 0.04);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-secondary);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
+  background: rgba(255, 255, 255, 0.35);
 }
 
 /* Focus ring for accessibility */
 *:focus-visible {
-  outline: 2px solid var(--brand-500);
+  outline: 2px solid rgba(99, 102, 241, 0.8);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* Skeleton animation */
+/* Skeleton animation (glass variant) */
 .skeleton-shimmer {
   background: linear-gradient(
     90deg,
-    var(--surface-tertiary) 25%,
-    var(--border) 50%,
-    var(--surface-tertiary) 75%
+    rgba(255,255,255,0.05) 25%,
+    rgba(255,255,255,0.12) 50%,
+    rgba(255,255,255,0.05) 75%
   );
   background-size: 200% 100%;
   animation: skeleton 1.5s ease-in-out infinite;
@@ -89,8 +144,68 @@ body {
   animation: fadeIn 0.2s ease-out;
 }
 
+/* ─── GLASS UTILITY CLASSES ─── */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Core glass panel — tinted slate-indigo backing for sharp text readability */
+  .glass {
+    background: rgba(18, 16, 48, 0.64);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Lighter glass surface */
+  .glass-sm {
+    background: rgba(24, 21, 60, 0.52);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  /* Stronger glass for cards */
+  .glass-lg {
+    background: rgba(20, 18, 52, 0.78);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  }
+
+  /* High-contrast frosted overlay for dropdowns, modals, and toasts */
+  .glass-overlay {
+    background: linear-gradient(145deg, rgba(24, 21, 56, 0.94), rgba(17, 15, 42, 0.96));
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  }
+
+  /* Glow accent */
+  .glow-indigo {
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.35), 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+  .glow-blue {
+    box-shadow: 0 0 24px rgba(14, 165, 233, 0.3), 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Background orb drift animation */
+@keyframes orb-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(4vw, 6vh) scale(1.08); }
+}
+
+/* Non-blocking Profile Audit indeterminate progress animation */
+@keyframes audit-progress {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(220%); }
+}
+
+.animate-audit-progress {
+  animation: audit-progress 1.15s ease-in-out infinite;
 }

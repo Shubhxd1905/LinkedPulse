@@ -9,7 +9,7 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className, variant = 'text', width, height, lines = 1 }: SkeletonProps) {
-  const baseClass = 'skeleton-shimmer rounded bg-slate-200 dark:bg-slate-700'
+  const baseClass = 'skeleton-shimmer rounded bg-white/10'
 
   const variants = {
     text: 'h-4 rounded',
@@ -42,7 +42,7 @@ export function Skeleton({ className, variant = 'text', width, height, lines = 1
 // Pre-built skeleton composites
 export function CardSkeleton() {
   return (
-    <div className="bg-white dark:bg-slate-800 border border-border rounded-xl p-5 space-y-4">
+    <div className="glass border border-white/15 rounded-xl p-5 space-y-4">
       <div className="flex items-center gap-3">
         <Skeleton variant="circular" width={40} height={40} />
         <div className="flex-1 space-y-2">
@@ -57,7 +57,7 @@ export function CardSkeleton() {
 
 export function StatCardSkeleton() {
   return (
-    <div className="bg-white dark:bg-slate-800 border border-border rounded-xl p-5 space-y-3">
+    <div className="glass border border-white/15 rounded-xl p-5 space-y-3">
       <Skeleton width={120} height={12} />
       <Skeleton width={80} height={28} />
       <Skeleton width="60%" height={10} />

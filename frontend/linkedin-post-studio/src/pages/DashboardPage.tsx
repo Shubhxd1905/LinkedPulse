@@ -125,10 +125,10 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
     return (
       <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             Performance Dashboard
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-white/50 mt-1">
             Track engagement trends, profile views, and content pipeline.
           </p>
         </div>
@@ -154,15 +154,15 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
   if (stateMode === 'error') {
     return (
       <div className="py-12 animate-fade-in">
-        <Card className="max-w-xl mx-auto border-red-200 dark:border-red-900/50">
+        <Card className="max-w-xl mx-auto border-red-400/30">
           <CardContent className="py-12 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 mb-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20 border border-red-400/30 text-red-300 mb-4">
               <AlertTriangle className="h-7 w-7" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-xl font-bold text-white mb-2">
               Failed to load dashboard metrics
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-sm mx-auto mb-6">
+            <p className="text-sm text-slate-200 max-w-sm mx-auto mb-6">
               A simulated network timeout occurred while fetching engagement data and metrics.
             </p>
             {onStateModeChange && (
@@ -208,16 +208,16 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
       {/* Welcome Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             Welcome back, {user?.displayName || 'Member'} 👋
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-200 mt-1">
             Here is your live profile optimization status, target role alignment, and content pipeline.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Link to="/optimize">
-            <Button variant="outline" size="sm" leftIcon={<UserCheck className="h-4 w-4 text-[#0a66c2]" />}>
+            <Button variant="outline" size="sm" leftIcon={<UserCheck className="h-4 w-4 text-indigo-300" />}>
               Profile Optimizer
             </Button>
           </Link>
@@ -232,21 +232,21 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
       {/* KPI Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {/* Profile Strength / Latest Audit Score */}
-        <Card className="hover:border-[#0a66c2]/40 transition-all duration-200 shadow-sm">
+        <Card className="hover:border-indigo-400/50 transition-all duration-200 shadow-sm">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                 Audit Score
               </span>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#0a66c2] dark:bg-blue-950/40 dark:text-blue-400">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/20 border border-sky-400/30 text-sky-300">
                 <Award className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               {latestScore !== null ? (
                 <>
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-white">{latestScore}</span>
-                  <span className="text-xs font-semibold text-slate-400">/ 100</span>
+                  <span className="text-3xl font-extrabold text-white">{latestScore}</span>
+                  <span className="text-xs font-semibold text-slate-300">/ 100</span>
                   <Badge
                     variant={latestScore >= 85 ? 'success' : latestScore >= 70 ? 'info' : 'warning'}
                     size="sm"
@@ -257,7 +257,7 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
                 </>
               ) : (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-slate-400">Not Audited</span>
+                  <span className="text-2xl font-bold text-slate-200">Not Audited</span>
                   <Link to="/optimize" className="ml-auto">
                     <Badge variant="default" size="sm">
                       Run Audit
@@ -267,14 +267,14 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
               )}
             </div>
             <div className="mt-3">
-              <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-white/15 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                  className="h-full rounded-full bg-emerald-400 transition-all duration-500"
                   style={{ width: `${latestScore ?? 0}%` }}
                 />
               </div>
             </div>
-            <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="mt-2 text-[11px] text-slate-300">
               {audits.length > 0
                 ? `${audits.length} recorded audit${audits.length > 1 ? 's' : ''} in cloud database`
                 : 'Run an audit to calculate recruiter match score'}
@@ -283,73 +283,73 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
         </Card>
 
         {/* Target Job Role & Intent */}
-        <Card className="hover:border-[#0a66c2]/40 transition-all duration-200 shadow-sm">
+        <Card className="hover:border-indigo-400/50 transition-all duration-200 shadow-sm">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                 Target Role
               </span>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-200">
                 <Target className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-lg font-bold text-slate-900 dark:text-white truncate" title={targetRole}>
+              <p className="text-lg font-bold text-white truncate" title={targetRole}>
                 {targetRole}
               </p>
               <Badge variant="info" size="sm" className="mt-1 text-[10px] truncate max-w-full">
                 {careerIntentLabel}
               </Badge>
             </div>
-            <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
-              Source: <span className="font-semibold uppercase text-slate-700 dark:text-slate-300">{profileSource}</span>
+            <p className="mt-3 text-[11px] text-slate-300">
+              Source: <span className="font-semibold uppercase text-white">{profileSource}</span>
             </p>
           </CardContent>
         </Card>
 
         {/* Active Saved Drafts */}
-        <Card className="hover:border-[#0a66c2]/40 transition-all duration-200 shadow-sm">
+        <Card className="hover:border-indigo-400/50 transition-all duration-200 shadow-sm">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                 Saved Drafts
               </span>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 border border-amber-400/30 text-amber-300">
                 <FolderOpen className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-slate-900 dark:text-white">{drafts.length}</span>
-              <span className="text-xs text-slate-500">posts saved</span>
+              <span className="text-3xl font-extrabold text-white">{drafts.length}</span>
+              <span className="text-xs text-slate-200">posts saved</span>
               <Link to="/drafts" className="ml-auto">
                 <Badge variant="default" size="sm">
                   View All
                 </Badge>
               </Link>
             </div>
-            <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="mt-3 text-[11px] text-slate-300">
               {drafts.length > 0 ? 'Synced with cloud storage' : 'No drafts saved yet'}
             </p>
           </CardContent>
         </Card>
 
         {/* LinkedIn Connection Status */}
-        <Card className="hover:border-[#0a66c2]/40 transition-all duration-200 shadow-sm">
+        <Card className="hover:border-indigo-400/50 transition-all duration-200 shadow-sm">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                 LinkedIn Account
               </span>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0a66c2]/10 text-[#0a66c2]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/20 border border-sky-400/30 text-sky-300">
                 <Linkedin className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-3 flex items-center gap-2">
               {linkedInStatus?.isConnected ? (
                 <>
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                    <p className="text-sm font-bold text-white truncate">
                       {linkedInStatus.memberName || 'Connected'}
                     </p>
                     <Badge variant="success" size="sm" className="mt-0.5">
@@ -359,9 +359,9 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
                 </>
               ) : (
                 <>
-                  <XCircle className="h-5 w-5 text-slate-400 shrink-0" />
+                  <XCircle className="h-5 w-5 text-slate-300 shrink-0" />
                   <div>
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Not Connected</p>
+                    <p className="text-sm font-bold text-white">Not Connected</p>
                     <Badge variant="default" size="sm" className="mt-0.5">
                       Manual Mode
                     </Badge>
@@ -369,7 +369,7 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
                 </>
               )}
             </div>
-            <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="mt-3 text-[11px] text-slate-300">
               {linkedInStatus?.isConnected
                 ? 'Ready for profile sync & direct publishing'
                 : 'Connect via OAuth for verified profile data'}
@@ -385,17 +385,17 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div>
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <UserCheck className="h-4 w-4 text-[#0a66c2]" />
+                <UserCheck className="h-4 w-4 text-indigo-300" />
                 Latest Profile Audit Insights
               </CardTitle>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-300 mt-0.5">
                 {latestAudit
                   ? `Evaluated for "${latestAudit.target_role || targetRole}" • Score: ${latestScore}/100`
                   : 'Actionable keyword & recruiter alignment breakdown'}
               </p>
             </div>
             <Link to="/optimize">
-              <Button variant="ghost" size="sm" className="text-xs">
+              <Button variant="ghost" size="sm" className="text-xs text-slate-100">
                 {latestAudit ? 'Full Analysis →' : 'Start Audit →'}
               </Button>
             </Link>
@@ -405,7 +405,7 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
               <div className="space-y-4">
                 {/* Strengths */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300 mb-2 flex items-center gap-1.5">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Key Strengths Identified
                   </h4>
@@ -413,7 +413,7 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
                     {auditStrengths.slice(0, 2).map((strength, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-xl border border-emerald-100 bg-emerald-50/50 dark:border-emerald-900/30 dark:bg-emerald-950/20 text-xs text-slate-800 dark:text-slate-200"
+                        className="p-3 rounded-xl border border-emerald-400/25 bg-emerald-500/10 text-xs text-slate-100 leading-relaxed"
                       >
                         {strength}
                       </div>
@@ -423,7 +423,7 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
 
                 {/* Recommendations */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300 mb-2 flex items-center gap-1.5">
                     <Lightbulb className="h-3.5 w-3.5" />
                     Recommended Improvements
                   </h4>
@@ -431,7 +431,7 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
                     {auditRecommendations.slice(0, 2).map((rec, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-xl border border-amber-100 bg-amber-50/50 dark:border-amber-900/30 dark:bg-amber-950/20 text-xs text-slate-800 dark:text-slate-200 flex items-start justify-between gap-3"
+                        className="p-3 rounded-xl border border-amber-400/25 bg-amber-500/10 text-xs text-slate-100 leading-relaxed flex items-start justify-between gap-3"
                       >
                         <span>{rec}</span>
                         <Link to="/optimize" className="shrink-0">
@@ -446,14 +446,19 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
               </div>
             ) : (
               <div className="py-8 text-center">
-                <UserCheck className="h-10 w-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-                <p className="font-semibold text-slate-700 dark:text-slate-300 text-sm">
+                <UserCheck className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                <p className="font-semibold text-white text-sm">
                   No Audit Run for this Profile Yet
                 </p>
-                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto mb-4">
+                <p className="text-xs text-slate-300 mt-1 max-w-sm mx-auto mb-4">
                   Run an instant AI profile audit to receive targeted keyword suggestions, section scores, and career pathway advice.
                 </p>
-                <Link to="/optimize">
+                <Link
+                  to="/optimize"
+                  data-profile-audit-trigger="true"
+                  data-audit-label="Loading Profile Audit..."
+                  data-audit-step="Opening Profile Audit workspace..."
+                >
                   <Button size="sm" variant="primary" leftIcon={<Award className="h-4 w-4" />}>
                     Run First Profile Audit
                   </Button>
@@ -468,36 +473,36 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
           <div>
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Clock className="h-4 w-4 text-[#0a66c2]" />
+                <Clock className="h-4 w-4 text-indigo-300" />
                 Optimal Posting Window
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-2 space-y-4">
-              <div className="rounded-xl bg-blue-50/60 p-4 dark:bg-slate-800/60 border border-blue-100 dark:border-slate-700">
+              <div className="rounded-xl bg-indigo-500/15 p-4 border border-indigo-400/25">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-[#0a66c2] dark:text-blue-400">Next Recommended Slot</span>
+                  <span className="text-xs font-semibold text-indigo-200">Next Recommended Slot</span>
                   <Badge variant="linkedin" size="sm">Tomorrow</Badge>
                 </div>
                 <div className="mt-2">
-                  <p className="text-xl font-extrabold text-slate-900 dark:text-white">
+                  <p className="text-xl font-extrabold text-white">
                     09:00 AM – 10:30 AM
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-xs text-slate-200 mt-1">
                     Feed engagement increases by 2.4x during this morning commuter window.
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
                   Algorithm Optimization Tips
                 </span>
-                <div className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-                  <Lightbulb className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
+                <div className="flex items-start gap-2.5 text-xs text-slate-200 leading-relaxed">
+                  <Lightbulb className="h-4 w-4 shrink-0 text-amber-300 mt-0.5" />
                   <span>The first 90 minutes determine 80% of your post's algorithmic reach. Respond to all comments quickly.</span>
                 </div>
-                <div className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-                  <Lightbulb className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
+                <div className="flex items-start gap-2.5 text-xs text-slate-200 leading-relaxed">
+                  <Lightbulb className="h-4 w-4 shrink-0 text-amber-300 mt-0.5" />
                   <span>Keep external links in the comments or at the very end to avoid reach penalty.</span>
                 </div>
               </div>
@@ -520,10 +525,10 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div>
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <History className="h-4 w-4 text-[#0a66c2]" />
+                <History className="h-4 w-4 text-indigo-300" />
                 Audit History ({audits.length})
               </CardTitle>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-300 mt-0.5">
                 Past evaluations securely stored in your personal database
               </p>
             </div>
@@ -537,7 +542,7 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+                  <tr className="border-b border-white/15 text-slate-300 font-semibold uppercase tracking-wider">
                     <th className="pb-2">Date</th>
                     <th className="pb-2">Target Role</th>
                     <th className="pb-2">Career Intent</th>
@@ -545,7 +550,7 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
                     <th className="pb-2 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                <tbody className="divide-y divide-white/10 text-slate-100">
                   {audits.slice(0, 5).map((a) => {
                     const score = a.overall_score ?? a.overallScore ?? 0
                     const dateStr = a.created_at
@@ -556,12 +561,12 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
                         })
                       : 'Recent'
                     return (
-                      <tr key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="py-2.5 font-mono text-[11px]">{dateStr}</td>
-                        <td className="py-2.5 font-semibold text-slate-900 dark:text-white">
+                      <tr key={a.id} className="hover:bg-white/5 transition-colors">
+                        <td className="py-2.5 font-mono text-[11px] text-slate-300">{dateStr}</td>
+                        <td className="py-2.5 font-semibold text-white">
                           {a.target_role || 'General'}
                         </td>
-                        <td className="py-2.5 capitalize">{a.career_intent || 'continue'}</td>
+                        <td className="py-2.5 capitalize text-slate-200">{a.career_intent || 'continue'}</td>
                         <td className="py-2.5">
                           <Badge
                             variant={score >= 85 ? 'success' : score >= 70 ? 'info' : 'warning'}
@@ -591,8 +596,8 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Recent Saved Drafts</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <h2 className="text-lg font-bold text-white">Recent Saved Drafts</h2>
+            <p className="text-xs text-slate-300">
               Posts saved in your database, ready for export or LinkedIn publishing
             </p>
           </div>
@@ -606,11 +611,11 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
         {drafts.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="py-10 text-center">
-              <FolderOpen className="h-10 w-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-              <p className="font-semibold text-slate-700 dark:text-slate-300 text-sm">
+              <FolderOpen className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+              <p className="font-semibold text-white text-sm">
                 No Drafts Saved Yet
               </p>
-              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto mb-4">
+              <p className="text-xs text-slate-300 mt-1 max-w-sm mx-auto mb-4">
                 Use the Image Post Generator to create engaging, algorithm-optimized LinkedIn posts with images.
               </p>
               <Link to="/post-studio">
@@ -634,7 +639,7 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
                       >
                         {post.status}
                       </Badge>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-slate-300">
                         {new Date(post.createdAt).toLocaleDateString(undefined, {
                           month: 'short',
                           day: 'numeric',
@@ -642,11 +647,11 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
                       </span>
                     </div>
 
-                    <p className="text-xs font-bold text-slate-900 dark:text-white mb-2 line-clamp-2">
+                    <p className="text-xs font-bold text-white mb-2 line-clamp-2">
                       {post.hook || post.content.slice(0, 60)}
                     </p>
 
-                    <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-4 font-normal leading-relaxed whitespace-pre-line">
+                    <p className="text-xs text-slate-200 line-clamp-4 font-normal leading-relaxed whitespace-pre-line">
                       {post.content}
                     </p>
 
@@ -654,7 +659,7 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
                       {(post.hashtags || []).map((tag: string) => (
                         <span
                           key={tag}
-                          className="text-[10px] font-medium text-[#0a66c2] dark:text-blue-400"
+                          className="text-[10px] font-medium text-sky-300"
                         >
                           #{tag.replace(/^#/, '')}
                         </span>
@@ -662,8 +667,8 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
                     </div>
                   </div>
 
-                  <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <span className="text-[11px] capitalize font-semibold text-slate-400">
+                  <div className="mt-5 pt-3 border-t border-white/15 flex items-center justify-between">
+                    <span className="text-[11px] capitalize font-semibold text-slate-300">
                       {post.tone || 'engaging'} tone
                     </span>
                     <div className="flex items-center gap-2">
@@ -698,3 +703,4 @@ export function DashboardPage({ stateMode = 'normal', onStateModeChange }: Dashb
     </div>
   )
 }
+

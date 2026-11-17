@@ -518,6 +518,18 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
             return None
         return auth_service.authenticate_session(token)
 
+    def _require_auth(self, message: str = "Authentication required. Please create an account or sign in.") -> Optional[Dict[str, Any]]:
+        """Returns the authenticated user or sends a 401 JSON response and returns None."""
+        user = self.get_authenticated_user()
+        if not user:
+            self._send_json({
+                "status": "error",
+                "code": "UNAUTHORIZED",
+                "message": message,
+            }, status=401)
+            return None
+        return user
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -793,13 +805,14 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
 
-        # Payload size enforcement: allow up to 10MB for image endpoints and image drafts
+        # Payload size enforcement: allow up to 10MB for image endpoints, image drafts, and bulk local import
         is_image_endpoint = path in (
             "/api/ai/generate-post-from-image",
             "/api/generate-from-image",
             "/api/generate-post",
             "/api/linkedin/publish",
             "/api/user/drafts",
+            "/api/user/import-local",
         )
         allowed_limit = MAX_IMAGE_PAYLOAD_BYTES if is_image_endpoint else MAX_PAYLOAD_BYTES
 
@@ -975,6 +988,9 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
                 }, status=401)
                 return
 
+            if not isinstance(body, dict):
+                body = {}
+
             imported_profile = False
             drafts_count = 0
 
@@ -986,12 +1002,21 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
                     database.upsert_user_profile(user["id"], local_profile)
                     imported_profile = True
 
-            # Drafts migration
+            # Drafts migration: remap legacy/foreign IDs to fresh UUIDs to prevent primary-key collisions
             local_drafts = body.get("drafts")
             if local_drafts and isinstance(local_drafts, list):
                 for d in local_drafts:
                     if isinstance(d, dict) and d.get("content"):
-                        database.save_post_draft(user["id"], d)
+                        draft_payload = dict(d)
+                        draft_id = draft_payload.get("id")
+                        existing = (
+                            database.get_post_draft(str(draft_id), user["id"])
+                            if draft_id
+                            else None
+                        )
+                        if not existing:
+                            draft_payload.pop("id", None)
+                        database.save_post_draft(user["id"], draft_payload)
                         drafts_count += 1
 
             self._send_json({
@@ -1005,6 +1030,8 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
             return
 
         if path in ("/api/ai/generate-post-from-image", "/api/generate-from-image", "/api/generate-post"):
+            if not self._require_auth("Authentication required to generate LinkedIn posts."):
+                return
             # In-memory IP rate limiting
             client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
             if not check_rate_limit(client_ip):
@@ -1084,6 +1111,8 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
             return
 
         elif path == "/api/ai/optimize-profile":
+            if not self._require_auth("Authentication required to run a Profile Audit."):
+                return
             # In-memory IP rate limiting
             client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
             if not check_rate_limit(client_ip):
@@ -1105,7 +1134,10 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
 
             headline = str(body.get("headline", "")).strip()
             about = str(body.get("about", "")).strip()
-            experience = body.get("experience", [])
+            exp_status = body.get("experienceStatus")
+            experience = [] if exp_status in ("fresher", "unavailable") else body.get("experience", [])
+            if exp_status in ("fresher", "unavailable"):
+                body = {**body, "experience": []}
             skills = body.get("skills", [])
 
             if not headline and not about and not experience and not skills:
@@ -1158,6 +1190,8 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
             return
 
         elif path == "/api/optimize-url":
+            if not self._require_auth("Authentication required to run a Profile Audit."):
+                return
             profile_url = body.get("url", "")
             try:
                 from profile_optimizer import optimize_profile_from_url
@@ -1181,6 +1215,8 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
             return
 
         elif path == "/api/analyze-profile":
+            if not self._require_auth("Authentication required to analyze a profile."):
+                return
             analysis = analyze_profile_heuristics(body)
             self._send_json(analysis)
             return
@@ -1194,6 +1230,8 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
             return
 
         elif path == "/api/rewrite":
+            if not self._require_auth("Authentication required to rewrite profile sections."):
+                return
             text = body.get("text", "")
             tone = body.get("tone", "thought-leader")
             section = body.get("section", "headline")
@@ -1203,6 +1241,8 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
             return
 
         elif path == "/api/generate-ideas":
+            if not self._require_auth("Authentication required to generate post ideas."):
+                return
             industry = body.get("industry", "Software & Technology")
             topic = body.get("topic", "Career Growth")
             ideas = generate_post_ideas(industry, topic)

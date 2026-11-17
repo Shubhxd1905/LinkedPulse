@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   UserCheck,
@@ -37,6 +37,11 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useToast } from '@/hooks/useToast'
 import type { DemoStateMode } from '@/components/layout/AppLayout'
+import {
+  emitProfileAuditLoaded,
+  emitProfileAuditStart,
+  emitProfileAuditStep,
+} from '@/lib/profileAuditEvents'
 
 // Phase 2 Profile Optimizer Engine imports
 import type {
@@ -145,16 +150,12 @@ export function ProfileOptimizerPage({
     }
   } | null>(null)
 
-  // Form State
-  const [targetRole, setTargetRole] = useState<string>(SAMPLE_PROFILE.targetRole)
-  const [headline, setHeadline] = useState<string>(SAMPLE_PROFILE.headline)
-  const [about, setAbout] = useState<string>(SAMPLE_PROFILE.about)
-  const [experience, setExperience] = useState<ExperienceInput[]>(
-    SAMPLE_PROFILE.experience
-  )
-  const [experienceStatus, setExperienceStatus] = useState<ExperienceStatus>(
-    SAMPLE_PROFILE.experience.length > 0 ? 'present' : 'fresher'
-  )
+  // Form State (starts clean; sample data loads only when user explicitly selects Demo / Pre-fill)
+  const [targetRole, setTargetRole] = useState<string>('Full-Stack Engineer')
+  const [headline, setHeadline] = useState<string>('')
+  const [about, setAbout] = useState<string>('')
+  const [experience, setExperience] = useState<ExperienceInput[]>([])
+  const [experienceStatus, setExperienceStatus] = useState<ExperienceStatus>('fresher')
   const [careerIntent, setCareerIntent] = useState<CareerIntent>('current-field')
   const [originalBackup, setOriginalBackup] = useState<{
     headline?: string
@@ -163,9 +164,9 @@ export function ProfileOptimizerPage({
   }>({})
   const [education, setEducation] = useState<string>('')
   const [projects, setProjects] = useState<string>('')
-  const [skills, setSkills] = useState<string[]>(SAMPLE_PROFILE.skills)
+  const [skills, setSkills] = useState<string[]>([])
   const [newSkillInput, setNewSkillInput] = useState<string>('')
-  const [profileUrl, setProfileUrl] = useState<string>(SAMPLE_PROFILE.profileUrl || '')
+  const [profileUrl, setProfileUrl] = useState<string>('')
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
 
   // Validation Errors
@@ -183,6 +184,18 @@ export function ProfileOptimizerPage({
   const [auditStep, setAuditStep] = useState<string>('')
   const [analysisResult, setAnalysisResult] =
     useState<ProfileAnalysisResult | null>(null)
+  const stepTimersRef = useRef<number[]>([])
+
+  const clearAuditTimers = useCallback(() => {
+    stepTimersRef.current.forEach((timerId) => window.clearTimeout(timerId))
+    stepTimersRef.current = []
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      clearAuditTimers()
+    }
+  }, [clearAuditTimers])
 
   // Side-by-side editing & copying state
   const [editingSection, setEditingSection] = useState<SectionType | null>(null)
@@ -260,45 +273,72 @@ export function ProfileOptimizerPage({
   // On mount: fetch LinkedIn account OAuth status + restore Phase 5 profile source
   useEffect(() => {
     let mounted = true
-    getLinkedInStatus()
-      .then((status) => {
-        if (mounted) setLinkedInStatus(status)
-      })
-      .catch(() => {})
+    let loadRafId: number | undefined
+    const pendingLoads: Promise<unknown>[] = []
+
+    pendingLoads.push(
+      getLinkedInStatus()
+        .then((status) => {
+          if (mounted) setLinkedInStatus(status)
+        })
+        .catch(() => {})
+    )
 
     // ── Phase 6: Load authenticated user profile & audit history from DB ────────
     if (isAuthenticated) {
-      apiGetUserProfile()
-        .then((res) => {
-          if (!mounted) return
-          if (res && res.profile && (res.profile.headline || res.profile.about || (Array.isArray(res.profile.skills) && res.profile.skills.length > 0))) {
-            const p = res.profile
-            if (p.targetRole) setTargetRole(p.targetRole)
-            if (p.headline) setHeadline(p.headline)
-            if (p.about) setAbout(p.about)
-            if (Array.isArray(p.skills)) setSkills(p.skills)
-            if (Array.isArray(p.experience)) setExperience(p.experience)
-            if (p.education) setEducation(p.education)
-            if (p.projects) setProjects(p.projects)
-            if (p.profileUrl) setProfileUrl(p.profileUrl)
-            if (p.experienceStatus) setExperienceStatus(p.experienceStatus)
-            if (p.careerIntent) setCareerIntent(p.careerIntent)
-            setProfileSource(p.profileSource || 'manual')
-            setShowSourceSelector(false)
-            setCloudSaveStatus('saved')
-          }
-        })
-        .catch(() => {})
+      pendingLoads.push(
+        apiGetUserProfile()
+          .then((res) => {
+            if (!mounted) return
+            if (res && res.profile && (res.profile.headline || res.profile.about || (Array.isArray(res.profile.skills) && res.profile.skills.length > 0))) {
+              const p = res.profile
+              const restoredExpStatus: ExperienceStatus =
+                p.experienceStatus === 'present' ||
+                p.experienceStatus === 'fresher' ||
+                p.experienceStatus === 'unavailable'
+                  ? p.experienceStatus
+                  : 'fresher'
+              if (p.targetRole) setTargetRole(p.targetRole)
+              if (p.headline) setHeadline(p.headline)
+              if (p.about) setAbout(p.about)
+              if (Array.isArray(p.skills)) setSkills(p.skills)
+              setExperience(
+                restoredExpStatus === 'present' && Array.isArray(p.experience)
+                  ? p.experience
+                  : []
+              )
+              if (p.education) setEducation(p.education)
+              if (p.projects) setProjects(p.projects)
+              if (p.profileUrl) setProfileUrl(p.profileUrl)
+              setExperienceStatus(restoredExpStatus)
+              if (p.careerIntent) setCareerIntent(p.careerIntent)
+              setProfileSource(p.profileSource || 'manual')
+              setShowSourceSelector(false)
+              setCloudSaveStatus('saved')
+            }
+          })
+          .catch(() => {})
+      )
 
-      apiGetUserAudits()
-        .then((res) => {
-          if (!mounted) return
-          if (res && Array.isArray(res.audits)) {
-            setAuditHistory(res.audits)
-          }
-        })
-        .catch(() => {})
+      pendingLoads.push(
+        apiGetUserAudits()
+          .then((res) => {
+            if (!mounted) return
+            if (res && Array.isArray(res.audits)) {
+              setAuditHistory(res.audits)
+            }
+          })
+          .catch(() => {})
+      )
     }
+
+    // Notify ProfileAuditLoader once initial Profile Audit view data settles
+    Promise.allSettled(pendingLoads).finally(() => {
+      if (!mounted) return
+      loadRafId = requestAnimationFrame(() => {
+        if (mounted) emitProfileAuditLoaded()
+      })
+    })
 
     // ── Phase 5: restore persisted source selection if not already restored from DB ──
     const savedSource = getActiveSource()
@@ -308,17 +348,25 @@ export function ProfileOptimizerPage({
       // Restore form data for the active source
       const saved = loadProfileData(savedSource)
       if (saved) {
+        const savedExpStatus: ExperienceStatus =
+          saved.experienceStatus === 'present' ||
+          saved.experienceStatus === 'fresher' ||
+          saved.experienceStatus === 'unavailable'
+            ? (saved.experienceStatus as ExperienceStatus)
+            : 'fresher'
         if (typeof saved.targetRole === 'string') setTargetRole(saved.targetRole)
         if (typeof saved.headline === 'string') setHeadline(saved.headline)
         if (typeof saved.about === 'string') setAbout(saved.about)
-        if (Array.isArray(saved.experience)) setExperience(saved.experience as ExperienceInput[])
+        setExperience(
+          savedExpStatus === 'present' && Array.isArray(saved.experience)
+            ? (saved.experience as ExperienceInput[])
+            : []
+        )
         if (Array.isArray(saved.skills)) setSkills(saved.skills as string[])
         if (typeof saved.education === 'string') setEducation(saved.education)
         if (typeof saved.projects === 'string') setProjects(saved.projects)
         if (typeof saved.profileUrl === 'string') setProfileUrl(saved.profileUrl)
-        if (saved.experienceStatus === 'present' || saved.experienceStatus === 'fresher' || saved.experienceStatus === 'unavailable') {
-          setExperienceStatus(saved.experienceStatus as ExperienceStatus)
-        }
+        setExperienceStatus(savedExpStatus)
         if (saved.careerIntent === 'current-field' || saved.careerIntent === 'career-switcher' || saved.careerIntent === 'related-role') {
           setCareerIntent(saved.careerIntent as CareerIntent)
         }
@@ -333,6 +381,7 @@ export function ProfileOptimizerPage({
 
     return () => {
       mounted = false
+      if (loadRafId !== undefined) cancelAnimationFrame(loadRafId)
     }
   }, [])
 
@@ -426,7 +475,7 @@ export function ProfileOptimizerPage({
     targetRole,
     headline,
     about,
-    experience,
+    experience: experienceStatus === 'present' ? experience : [],
     skills,
     education,
     projects,
@@ -481,17 +530,25 @@ export function ProfileOptimizerPage({
   const applyManualSource = () => {
     const saved = loadProfileData('manual')
     if (saved) {
+      const savedExpStatus: ExperienceStatus =
+        saved.experienceStatus === 'present' ||
+        saved.experienceStatus === 'fresher' ||
+        saved.experienceStatus === 'unavailable'
+          ? (saved.experienceStatus as ExperienceStatus)
+          : 'fresher'
       if (typeof saved.targetRole === 'string') setTargetRole(saved.targetRole)
       if (typeof saved.headline === 'string') setHeadline(saved.headline)
       if (typeof saved.about === 'string') setAbout(saved.about)
-      if (Array.isArray(saved.experience)) setExperience(saved.experience as ExperienceInput[])
+      setExperience(
+        savedExpStatus === 'present' && Array.isArray(saved.experience)
+          ? (saved.experience as ExperienceInput[])
+          : []
+      )
       if (Array.isArray(saved.skills)) setSkills(saved.skills as string[])
       if (typeof saved.education === 'string') setEducation(saved.education)
       if (typeof saved.projects === 'string') setProjects(saved.projects)
       if (typeof saved.profileUrl === 'string') setProfileUrl(saved.profileUrl)
-      if (saved.experienceStatus === 'present' || saved.experienceStatus === 'fresher' || saved.experienceStatus === 'unavailable') {
-        setExperienceStatus(saved.experienceStatus as ExperienceStatus)
-      }
+      setExperienceStatus(savedExpStatus)
       if (saved.careerIntent === 'current-field' || saved.careerIntent === 'career-switcher' || saved.careerIntent === 'related-role') {
         setCareerIntent(saved.careerIntent as CareerIntent)
       }
@@ -621,8 +678,8 @@ export function ProfileOptimizerPage({
     }
 
     // Experience is optional: an empty experience section never blocks audit execution.
-    // Only flag incomplete entries if the user added a role entry with partial content.
-    if (experience.length > 0) {
+    // Only flag incomplete entries when work experience mode is active.
+    if (experienceStatus === 'present' && experience.length > 0) {
       const hasPartiallyEmptyExp = experience.some(
         (e) => (!e.title.trim() && e.description.trim()) || (e.title.trim() && !e.description.trim())
       )
@@ -751,6 +808,7 @@ export function ProfileOptimizerPage({
   // ─────────────────────────────────────────────────────────────
   const handleRunAudit = async (toneToUse: OptimizationTone = targetTone) => {
     if (!validateForm()) {
+      emitProfileAuditLoaded()
       warning(
         'Incomplete Profile',
         'Please address the highlighted errors before running the analysis.'
@@ -758,40 +816,59 @@ export function ProfileOptimizerPage({
       return
     }
 
+    clearAuditTimers()
+    const initialStep = 'Evaluating headline clarity and target role keywords...'
     setIsAuditing(true)
-    setAuditStep('Evaluating headline clarity and target role keywords...')
+    setAuditStep(initialStep)
+    emitProfileAuditStart({
+      label: 'Analyzing Your LinkedIn Profile...',
+      step: initialStep,
+    })
 
-    setTimeout(() => {
-      setAuditStep(
-        'Auditing About summary for hook strength and quantifiable metrics...'
-      )
-    }, 400)
-
-    setTimeout(() => {
-      setAuditStep(
-        'Inspecting experience descriptions for action verbs and STAR metrics...'
-      )
-    }, 800)
-
-    setTimeout(() => {
-      setAuditStep(
-        'Calculating recruiter search ranking and formulating tailored rewrites...'
-      )
-    }, 1200)
+    stepTimersRef.current.push(
+      window.setTimeout(() => {
+        const msg = 'Auditing About summary for hook strength and quantifiable metrics...'
+        setAuditStep(msg)
+        emitProfileAuditStep(msg)
+      }, 400),
+      window.setTimeout(() => {
+        const msg = 'Inspecting experience descriptions for action verbs and STAR metrics...'
+        setAuditStep(msg)
+        emitProfileAuditStep(msg)
+      }, 800),
+      window.setTimeout(() => {
+        const msg = 'Calculating recruiter search ranking and formulating tailored rewrites...'
+        setAuditStep(msg)
+        emitProfileAuditStep(msg)
+      }, 1200)
+    )
 
     try {
+      const populatedExperience = experience
+        .map((e) => ({
+          ...e,
+          title: e.title.trim(),
+          company: e.company.trim(),
+          duration: e.duration.trim(),
+          description: e.description.trim(),
+        }))
+        .filter((e) => e.title || e.company || e.description)
+
+      // Strictly respect Fresher / Unavailable modes so hidden or stale entries never leak into audits
       const effectiveExpStatus: ExperienceStatus =
-        experience.length > 0
-          ? 'present'
+        experienceStatus === 'fresher'
+          ? 'fresher'
           : experienceStatus === 'unavailable'
           ? 'unavailable'
-          : 'fresher'
+          : populatedExperience.length > 0
+          ? 'present'
+          : 'unavailable'
 
       const inputData: ProfileInputData = {
         targetRole,
         headline,
         about,
-        experience: effectiveExpStatus === 'present' ? experience : [],
+        experience: effectiveExpStatus === 'present' ? populatedExperience : [],
         skills,
         profileUrl,
         experienceStatus: effectiveExpStatus,
@@ -851,7 +928,9 @@ export function ProfileOptimizerPage({
         err instanceof Error ? err.message : 'Analysis failed. Please try again.'
       )
     } finally {
+      clearAuditTimers()
       setIsAuditing(false)
+      requestAnimationFrame(() => emitProfileAuditLoaded())
     }
   }
 
@@ -873,11 +952,12 @@ export function ProfileOptimizerPage({
     setCloudSaveStatus('saving')
 
     const timer = setTimeout(async () => {
+      const persistedExperience = experienceStatus === 'present' ? experience : []
       saveProfileData(profileSource, {
         targetRole,
         headline,
         about,
-        experience,
+        experience: persistedExperience,
         skills,
         education,
         projects,
@@ -896,7 +976,7 @@ export function ProfileOptimizerPage({
             about,
             skills,
             education,
-            experience,
+            experience: persistedExperience,
             projects,
             experienceStatus,
             careerIntent,
@@ -965,10 +1045,10 @@ export function ProfileOptimizerPage({
     return (
       <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             LinkedIn Profile Optimizer
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-200 mt-1">
             Audit your profile against 2026 recruiter search algorithms and generate high-impact rewrites.
           </p>
         </div>
@@ -976,7 +1056,7 @@ export function ProfileOptimizerPage({
         <Card>
           <CardContent className="py-16 text-center">
             <EmptyState
-              icon={<UserCheck className="h-14 w-14 text-slate-300 dark:text-slate-600" />}
+              icon={<UserCheck className="h-14 w-14 text-slate-300" />}
               title="No Profile Audited Yet"
               description="Fill out the profile form or load our pre-filled developer sample to receive an instant comprehensive audit."
               action={{
@@ -993,22 +1073,22 @@ export function ProfileOptimizerPage({
     )
   }
 
-  if (stateMode === 'loading' || isAuditing) {
+  if (stateMode === 'loading') {
     return (
       <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
         <div className="text-center py-12">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[#0a66c2] dark:bg-slate-800 dark:text-blue-400 mb-4 animate-bounce shadow-sm">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 mb-4 animate-bounce shadow-sm">
             <Sparkles className="h-8 w-8" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-xl font-bold text-white">
             Analyzing Your LinkedIn Profile...
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto">
+          <p className="text-sm text-slate-200 mt-2 max-w-md mx-auto">
             {auditStep ||
               'Running heuristic audit across headline keywords, metric density, and experience impact.'}
           </p>
-          <div className="w-64 h-2 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mt-6 overflow-hidden">
-            <div className="h-full bg-[#0a66c2] rounded-full animate-pulse w-3/4" />
+          <div className="w-64 h-2 bg-white/15 rounded-full mx-auto mt-6 overflow-hidden">
+            <div className="h-full bg-indigo-400 rounded-full animate-pulse w-3/4" />
           </div>
         </div>
 
@@ -1024,15 +1104,15 @@ export function ProfileOptimizerPage({
   if (stateMode === 'error') {
     return (
       <div className="py-12 animate-fade-in max-w-xl mx-auto">
-        <Card className="border-red-200 dark:border-red-900/50">
+        <Card className="border-red-400/30">
           <CardContent className="py-12 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 mb-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20 text-red-300 border border-red-400/30 mb-4">
               <AlertCircle className="h-7 w-7" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-xl font-bold text-white mb-2">
               Failed to Analyze Profile
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-sm mx-auto mb-6">
+            <p className="text-sm text-slate-200 max-w-sm mx-auto mb-6">
               An error occurred while evaluating your profile text against the heuristic dictionary.
             </p>
             {onStateModeChange && (
@@ -1060,14 +1140,14 @@ export function ProfileOptimizerPage({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                 LinkedIn Profile Optimizer
               </h1>
               <Badge variant="linkedin" size="sm">
                 Phase 5 Active
               </Badge>
             </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-sm text-slate-200 mt-1">
               Perform an independent algorithmic audit on your profile, discover keyword gaps, and generate high-impact rewrites.
             </p>
           </div>
@@ -1099,14 +1179,14 @@ export function ProfileOptimizerPage({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
               LinkedIn Profile Optimizer
             </h1>
             <Badge variant="linkedin" size="sm">
               Phase 5 Active
             </Badge>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-200 mt-1">
             Perform an independent algorithmic audit on your profile, discover keyword gaps, and generate high-impact rewrites.
           </p>
         </div>
@@ -1115,25 +1195,25 @@ export function ProfileOptimizerPage({
         <div className="flex items-center gap-2 flex-wrap">
           {/* Cloud Auto-Save Status */}
           {isAuthenticated && profileSource !== 'demo' && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border bg-white/[0.08] text-slate-100 border-white/15">
               {cloudSaveStatus === 'saving' ? (
                 <>
-                  <RefreshCw className="h-3 w-3 animate-spin text-[#0a66c2]" />
+                  <RefreshCw className="h-3 w-3 animate-spin text-sky-400" />
                   <span>Saving to cloud...</span>
                 </>
               ) : cloudSaveStatus === 'saved' ? (
                 <>
-                  <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                  <CheckCircle2 className="h-3 w-3 text-emerald-400" />
                   <span>Saved to cloud</span>
                 </>
               ) : cloudSaveStatus === 'error' ? (
                 <>
-                  <AlertCircle className="h-3 w-3 text-red-500" />
+                  <AlertCircle className="h-3 w-3 text-red-400" />
                   <span>Save failed</span>
                 </>
               ) : (
                 <>
-                  <Check className="h-3 w-3 text-slate-400" />
+                  <Check className="h-3 w-3 text-slate-300" />
                   <span>Cloud synced</span>
                 </>
               )}
@@ -1151,10 +1231,10 @@ export function ProfileOptimizerPage({
                 setIsAuditHistoryOpen(true)
               }}
             >
-              <FileText className="h-3.5 w-3.5 text-[#0a66c2]" />
+              <FileText className="h-3.5 w-3.5 text-sky-400" />
               <span>Audit History</span>
               {auditHistory.length > 0 && (
-                <span className="ml-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-[#0a66c2] dark:text-blue-400 px-1.5 py-0.2 text-[10px] font-bold">
+                <span className="ml-0.5 rounded-full bg-indigo-500/30 text-indigo-200 px-1.5 py-0.2 text-[10px] font-bold">
                   {auditHistory.length}
                 </span>
               )}
@@ -1167,17 +1247,17 @@ export function ProfileOptimizerPage({
               checkServerAiStatus().then(setServerAiStatus)
               setIsAiModalOpen(true)
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition-colors shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/15 bg-white/[0.08] text-xs font-semibold text-white hover:bg-white/[0.14] transition-colors shadow-xs"
             title="Configure Server-Side AI Engine"
           >
-            <Cpu className="h-3.5 w-3.5 text-[#0a66c2]" />
+            <Cpu className="h-3.5 w-3.5 text-sky-400" />
             <span>
               Engine:{' '}
               {engineMode === 'openrouter'
                 ? 'OpenRouter AI (Server)'
                 : 'Heuristic Engine'}
             </span>
-            <Sliders className="h-3 w-3 text-slate-400" />
+            <Sliders className="h-3 w-3 text-slate-300" />
           </button>
         </div>
       </div>
@@ -1189,8 +1269,8 @@ export function ProfileOptimizerPage({
         <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-[#0a66c2]" />
-              <CardTitle className="text-base font-bold">
+              <UserCheck className="h-5 w-5 text-sky-400" />
+              <CardTitle className="text-base font-bold text-white">
                 1. Your LinkedIn Profile Information
               </CardTitle>
             </div>
@@ -1202,14 +1282,14 @@ export function ProfileOptimizerPage({
                 size="sm"
                 className="h-8 text-xs"
                 onClick={handleLoadSample}
-                leftIcon={<Sparkles className="h-3.5 w-3.5 text-[#0a66c2]" />}
+                leftIcon={<Sparkles className="h-3.5 w-3.5 text-indigo-300" />}
               >
                 Pre-fill Sample
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                className="h-8 text-xs text-red-300 hover:bg-red-500/15 hover:text-red-200"
                 onClick={handleResetForm}
                 leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
               >
@@ -1219,7 +1299,7 @@ export function ProfileOptimizerPage({
           </div>
 
           {/* Phase 5: Profile Data Source Badge Banner */}
-          <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between flex-wrap gap-2">
+          <div className="mt-3 p-3 bg-white/[0.06] rounded-lg border border-white/15 flex items-center justify-between flex-wrap gap-2">
             <ProfileSourceBadge
               source={profileSource || 'manual'}
               linkedInAvailableFields={linkedInAvailableFields}
@@ -1230,7 +1310,7 @@ export function ProfileOptimizerPage({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 text-xs border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                  className="h-7 text-xs border-amber-400/40 text-amber-200 hover:bg-amber-500/20"
                   onClick={handleResetDemo}
                   leftIcon={<RotateCcw className="h-3 w-3" />}
                 >
@@ -1240,7 +1320,7 @@ export function ProfileOptimizerPage({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/40"
+                  className="h-7 text-xs text-amber-300 hover:bg-amber-500/15 hover:text-amber-200"
                   onClick={applyDemoSource}
                   leftIcon={<Sparkles className="h-3 w-3" />}
                 >
@@ -1259,13 +1339,13 @@ export function ProfileOptimizerPage({
           </div>
 
           {/* Mode Switcher Tabs */}
-          <div className="flex border-b border-slate-100 dark:border-slate-800 gap-2 pt-4">
+          <div className="flex border-b border-white/15 gap-2 pt-4">
             <button
               onClick={() => setActiveInputTab('form')}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-all ${
                 activeInputTab === 'form'
-                  ? 'border-[#0a66c2] text-[#0a66c2]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'border-indigo-400 text-white'
+                  : 'border-transparent text-slate-300 hover:text-white'
               }`}
             >
               <FileText className="h-3.5 w-3.5" />
@@ -1276,8 +1356,8 @@ export function ProfileOptimizerPage({
               onClick={() => setActiveInputTab('url')}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-all ${
                 activeInputTab === 'url'
-                  ? 'border-[#0a66c2] text-[#0a66c2]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'border-indigo-400 text-white'
+                  : 'border-transparent text-slate-300 hover:text-white'
               }`}
             >
               <LinkIcon className="h-3.5 w-3.5" />
@@ -1288,8 +1368,8 @@ export function ProfileOptimizerPage({
               onClick={() => setActiveInputTab('pdf')}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-all ${
                 activeInputTab === 'pdf'
-                  ? 'border-[#0a66c2] text-[#0a66c2]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'border-indigo-400 text-white'
+                  : 'border-transparent text-slate-300 hover:text-white'
               }`}
             >
               <Upload className="h-3.5 w-3.5" />
@@ -1314,16 +1394,16 @@ export function ProfileOptimizerPage({
               </div>
 
               {/* Career Goal Selector (3 Selectable Paths) */}
-              <div className="p-3.5 rounded-xl border border-blue-100 bg-blue-50/50 dark:border-blue-950/60 dark:bg-blue-950/20 space-y-2.5">
+              <div className="p-3.5 rounded-xl border border-indigo-400/25 bg-indigo-500/10 space-y-2.5">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-[#0a66c2]" />
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                    <Sparkles className="w-4 h-4 text-indigo-300" />
+                    <span className="text-sm font-bold text-white">
                       What is your career goal?
                     </span>
                   </div>
                   {isRoleDivergent && (
-                    <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900">
+                    <span className="text-[10px] font-semibold text-amber-200 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-400/35">
                       Target role differs from profile
                     </span>
                   )}
@@ -1336,22 +1416,22 @@ export function ProfileOptimizerPage({
                     onClick={() => setCareerIntent('current-field')}
                     className={`p-3 rounded-lg border text-left text-xs transition-all flex flex-col justify-between ${
                       careerIntent === 'current-field'
-                        ? 'border-[#0a66c2] bg-white dark:bg-slate-800 shadow-sm ring-2 ring-[#0a66c2]/30 text-slate-900 dark:text-white font-semibold'
-                        : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                        ? 'border-indigo-400 bg-indigo-500/25 shadow-sm ring-2 ring-indigo-400/30 text-white font-semibold'
+                        : 'border-white/15 bg-white/[0.06] text-slate-200 hover:bg-white/[0.1] hover:border-white/25'
                     }`}
                   >
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-xs text-slate-900 dark:text-slate-100">
+                        <span className="font-bold text-xs text-white">
                           Continue in My Current Career
                         </span>
                         {careerIntent === 'current-field' && (
-                          <span className="h-4 w-4 rounded-full bg-[#0a66c2] text-white flex items-center justify-center shrink-0">
+                          <span className="h-4 w-4 rounded-full bg-indigo-500 text-white flex items-center justify-center shrink-0">
                             <Check className="w-2.5 h-2.5" />
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
+                      <p className="text-[11px] text-slate-200 font-normal leading-relaxed">
                         Optimize my profile for opportunities in my existing field, emphasizing relevant experience, skills, specialization, and career progression.
                       </p>
                     </div>
@@ -1363,22 +1443,22 @@ export function ProfileOptimizerPage({
                     onClick={() => setCareerIntent('career-switcher')}
                     className={`p-3 rounded-lg border text-left text-xs transition-all flex flex-col justify-between ${
                       careerIntent === 'career-switcher'
-                        ? 'border-[#0a66c2] bg-white dark:bg-slate-800 shadow-sm ring-2 ring-[#0a66c2]/30 text-slate-900 dark:text-white font-semibold'
-                        : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                        ? 'border-indigo-400 bg-indigo-500/25 shadow-sm ring-2 ring-indigo-400/30 text-white font-semibold'
+                        : 'border-white/15 bg-white/[0.06] text-slate-200 hover:bg-white/[0.1] hover:border-white/25'
                     }`}
                   >
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-xs text-slate-900 dark:text-slate-100">
+                        <span className="font-bold text-xs text-white">
                           Transition to a New Career
                         </span>
                         {careerIntent === 'career-switcher' && (
-                          <span className="h-4 w-4 rounded-full bg-[#0a66c2] text-white flex items-center justify-center shrink-0">
+                          <span className="h-4 w-4 rounded-full bg-indigo-500 text-white flex items-center justify-center shrink-0">
                             <Check className="w-2.5 h-2.5" />
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
+                      <p className="text-[11px] text-slate-200 font-normal leading-relaxed">
                         Help me move into a different career by identifying transferable skills, relevant learning opportunities, and ways to communicate my career transition.
                       </p>
                     </div>
@@ -1390,22 +1470,22 @@ export function ProfileOptimizerPage({
                     onClick={() => setCareerIntent('related-role')}
                     className={`p-3 rounded-lg border text-left text-xs transition-all flex flex-col justify-between ${
                       careerIntent === 'related-role'
-                        ? 'border-[#0a66c2] bg-white dark:bg-slate-800 shadow-sm ring-2 ring-[#0a66c2]/30 text-slate-900 dark:text-white font-semibold'
-                        : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                        ? 'border-indigo-400 bg-indigo-500/25 shadow-sm ring-2 ring-indigo-400/30 text-white font-semibold'
+                        : 'border-white/15 bg-white/[0.06] text-slate-200 hover:bg-white/[0.1] hover:border-white/25'
                     }`}
                   >
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-xs text-slate-900 dark:text-slate-100">
+                        <span className="font-bold text-xs text-white">
                           Explore a Related Role
                         </span>
                         {careerIntent === 'related-role' && (
-                          <span className="h-4 w-4 rounded-full bg-[#0a66c2] text-white flex items-center justify-center shrink-0">
+                          <span className="h-4 w-4 rounded-full bg-indigo-500 text-white flex items-center justify-center shrink-0">
                             <Check className="w-2.5 h-2.5" />
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
+                      <p className="text-[11px] text-slate-200 font-normal leading-relaxed">
                         Help me target a related specialization or adjacent role by connecting my existing experience and skills with the requirements of the new position.
                       </p>
                     </div>
@@ -1416,12 +1496,12 @@ export function ProfileOptimizerPage({
               {/* Headline */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <label className="text-sm font-semibold text-slate-100">
                     LinkedIn Headline
                   </label>
                   <span
                     className={`text-xs ${
-                      headline.length > 220 ? 'text-red-500 font-bold' : 'text-slate-400'
+                      headline.length > 220 ? 'text-red-400 font-bold' : 'text-slate-300'
                     }`}
                   >
                     {headline.length} / 220 characters
@@ -1441,10 +1521,10 @@ export function ProfileOptimizerPage({
               {/* About Section */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <label className="text-sm font-semibold text-slate-100">
                     About / Summary Section
                   </label>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-slate-300">
                     {about.trim() ? about.trim().split(/\s+/).length : 0} words
                   </span>
                 </div>
@@ -1464,10 +1544,10 @@ export function ProfileOptimizerPage({
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-semibold text-slate-100">
                       Work Experience (Optional)
                     </label>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-300 mt-0.5">
                       Empty experience is permitted and will not block the audit or penalize freshers.
                     </p>
                   </div>
@@ -1491,8 +1571,8 @@ export function ProfileOptimizerPage({
                     onClick={() => setExperienceStatus('present')}
                     className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-semibold transition-all ${
                       experienceStatus === 'present'
-                        ? 'border-[#0a66c2] bg-blue-50/60 dark:bg-blue-900/30 text-[#0a66c2] shadow-xs'
-                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'border-indigo-400 bg-indigo-500/25 text-white shadow-xs'
+                        : 'border-white/15 bg-white/[0.05] text-slate-200 hover:bg-white/[0.1]'
                     }`}
                   >
                     <Briefcase className="h-4 w-4 shrink-0" />
@@ -1503,12 +1583,15 @@ export function ProfileOptimizerPage({
                     type="button"
                     onClick={() => {
                       setExperienceStatus('fresher')
+                      setExperience((prev) =>
+                        prev.every((item) => item.id === 'exp-1' || item.id === 'exp-2') ? [] : prev
+                      )
                       setErrors((prev) => ({ ...prev, experience: undefined }))
                     }}
                     className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-semibold transition-all ${
                       experienceStatus === 'fresher'
-                        ? 'border-[#0a66c2] bg-blue-50/60 dark:bg-blue-900/30 text-[#0a66c2] shadow-xs'
-                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'border-indigo-400 bg-indigo-500/25 text-white shadow-xs'
+                        : 'border-white/15 bg-white/[0.05] text-slate-200 hover:bg-white/[0.1]'
                     }`}
                   >
                     <GraduationCap className="h-4 w-4 shrink-0" />
@@ -1519,12 +1602,15 @@ export function ProfileOptimizerPage({
                     type="button"
                     onClick={() => {
                       setExperienceStatus('unavailable')
+                      setExperience((prev) =>
+                        prev.every((item) => item.id === 'exp-1' || item.id === 'exp-2') ? [] : prev
+                      )
                       setErrors((prev) => ({ ...prev, experience: undefined }))
                     }}
                     className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-semibold transition-all ${
                       experienceStatus === 'unavailable'
-                        ? 'border-[#0a66c2] bg-blue-50/60 dark:bg-blue-900/30 text-[#0a66c2] shadow-xs'
-                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'border-indigo-400 bg-indigo-500/25 text-white shadow-xs'
+                        : 'border-white/15 bg-white/[0.05] text-slate-200 hover:bg-white/[0.1]'
                     }`}
                   >
                     <Info className="h-4 w-4 shrink-0" />
@@ -1534,18 +1620,18 @@ export function ProfileOptimizerPage({
 
                 {/* Fresher Mode Banner & Optional Fields */}
                 {experienceStatus === 'fresher' && (
-                  <div className="rounded-xl border border-blue-100 bg-blue-50/60 dark:border-blue-900/40 dark:bg-blue-950/20 p-4 space-y-3 text-xs">
-                    <div className="flex items-center gap-2 font-bold text-blue-900 dark:text-blue-300">
-                      <GraduationCap className="h-4 w-4 text-[#0a66c2]" />
+                  <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/15 p-4 space-y-3 text-xs">
+                    <div className="flex items-center gap-2 font-bold text-indigo-200">
+                      <GraduationCap className="h-4 w-4 text-sky-400" />
                       <span>Early Career / Fresher Mode Active</span>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <p className="text-slate-200 leading-relaxed">
                       Zero commercial experience will not penalize your profile score. Your audit is evaluated on educational foundations, technical skills, and practical projects.
                     </p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <div>
-                        <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        <label className="text-[11px] font-semibold text-slate-200 block mb-1">
                           Education / Degree (Optional)
                         </label>
                         <Input
@@ -1555,7 +1641,7 @@ export function ProfileOptimizerPage({
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        <label className="text-[11px] font-semibold text-slate-200 block mb-1">
                           Projects / Capstone (Optional)
                         </label>
                         <Input
@@ -1570,19 +1656,19 @@ export function ProfileOptimizerPage({
 
                 {/* Unavailable Mode Banner */}
                 {experienceStatus === 'unavailable' && (
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/30 p-4 text-xs space-y-1.5">
-                    <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
-                      <Info className="h-4 w-4 text-slate-500" />
+                  <div className="rounded-xl border border-white/15 bg-white/[0.06] p-4 text-xs space-y-1.5">
+                    <div className="flex items-center gap-2 font-bold text-white">
+                      <Info className="h-4 w-4 text-slate-300" />
                       <span>Experience Section Omitted / Unavailable</span>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
+                    <p className="text-slate-200 leading-relaxed">
                       Experience is optional. Your audit will assess Headline, About, and Skills without penalizing your score for missing work history.
                     </p>
                   </div>
                 )}
 
                 {errors.experience && (
-                  <p className="text-xs text-red-500 font-medium">
+                  <p className="text-xs text-red-400 font-medium">
                     {errors.experience}
                   </p>
                 )}
@@ -1591,11 +1677,11 @@ export function ProfileOptimizerPage({
                 {experienceStatus === 'present' && (
                   <div className="space-y-3">
                     {experience.length === 0 && (
-                      <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center py-6 text-xs text-slate-500">
-                        <p className="font-semibold text-slate-700 dark:text-slate-300">
+                      <div className="p-4 rounded-xl border border-dashed border-white/20 text-center py-6 text-xs text-slate-200">
+                        <p className="font-semibold text-white">
                           No work experience roles added (Optional)
                         </p>
-                        <p className="text-slate-400 mt-1">
+                        <p className="text-slate-300 mt-1">
                           You can run the audit with experience blank, add roles with the button above, or select Fresher mode.
                         </p>
                       </div>
@@ -1603,17 +1689,17 @@ export function ProfileOptimizerPage({
                     {experience.map((exp, index) => (
                       <div
                         key={exp.id}
-                      className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-800/40 space-y-3"
+                      className="p-4 rounded-xl border border-white/15 bg-white/[0.06] space-y-3"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-500">
+                        <span className="text-xs font-bold text-slate-200">
                           Role #{index + 1}
                         </span>
-                        {experience.length > 1 && (
+                        {experience.length > 0 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveExperience(exp.id)}
-                            className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 font-semibold"
+                            className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold"
                           >
                             <Trash2 className="h-3.5 w-3.5" /> Remove
                           </button>
@@ -1664,7 +1750,7 @@ export function ProfileOptimizerPage({
 
               {/* Skills Tags */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                <label className="text-sm font-semibold text-slate-100">
                   Skills & Endorsements ({skills.length})
                 </label>
                 <div className="flex gap-2">
@@ -1694,13 +1780,13 @@ export function ProfileOptimizerPage({
                   {skills.map((skill) => (
                     <span
                       key={skill}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-[#0a66c2] text-xs font-semibold dark:bg-blue-950/40 dark:text-blue-300"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-400/30 text-indigo-100 text-xs font-semibold"
                     >
                       {skill}
                       <button
                         type="button"
                         onClick={() => handleRemoveSkill(skill)}
-                        className="hover:text-red-500 ml-1 text-slate-400"
+                        className="hover:text-red-300 ml-1 text-slate-300"
                       >
                         ×
                       </button>
@@ -1711,7 +1797,7 @@ export function ProfileOptimizerPage({
                 {/* Taxonomy quick suggestions */}
                 {targetRole && getRoleTaxonomy(targetRole) && (
                   <div className="pt-2">
-                    <span className="text-[11px] text-slate-400 font-semibold block mb-1">
+                    <span className="text-[11px] text-slate-200 font-semibold block mb-1">
                       Quick suggestions for {targetRole}:
                     </span>
                     <div className="flex flex-wrap gap-1">
@@ -1727,7 +1813,7 @@ export function ProfileOptimizerPage({
                             key={rec}
                             type="button"
                             onClick={() => handleAddSkill(rec)}
-                            className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-dashed border-slate-300 text-slate-600 hover:border-[#0a66c2] hover:text-[#0a66c2] dark:border-slate-700 dark:text-slate-300 transition-colors"
+                            className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-dashed border-white/25 text-slate-200 hover:border-indigo-400 hover:text-white transition-colors"
                           >
                             + {rec}
                           </button>
@@ -1743,14 +1829,14 @@ export function ProfileOptimizerPage({
           {activeInputTab === 'url' && (
             <div className="space-y-6">
               {/* LinkedIn Account Connection Bar */}
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="p-4 rounded-xl border border-white/15 bg-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-[#0a66c2]/10 text-[#0a66c2] flex items-center justify-center shrink-0">
+                  <div className="h-10 w-10 rounded-xl bg-sky-500/20 border border-sky-400/30 text-sky-300 flex items-center justify-center shrink-0">
                     <Linkedin className="h-5 w-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                      <span className="text-sm font-bold text-white">
                         Official LinkedIn Account
                       </span>
                       {linkedInStatus?.isConnected ? (
@@ -1763,7 +1849,7 @@ export function ProfileOptimizerPage({
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-200 mt-0.5">
                       {linkedInStatus?.isConnected
                         ? `Authorized as ${linkedInStatus.memberName} (${linkedInStatus.memberEmail || 'OAuth Token Active'})`
                         : 'Connect your account in Settings to enable direct 1-click profile retrieval.'}
@@ -1798,7 +1884,7 @@ export function ProfileOptimizerPage({
 
               {/* Profile URL Input */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block">
+                <label className="text-sm font-semibold text-slate-100 block">
                   Public LinkedIn Profile URL
                 </label>
                 <div className="flex gap-2">
@@ -1822,38 +1908,38 @@ export function ProfileOptimizerPage({
                     Fetch Profile from URL
                   </Button>
                 </div>
-                <p className="text-xs text-slate-400">
-                  Example format: <code className="text-slate-600 dark:text-slate-300">https://www.linkedin.com/in/alex-rivera-123</code>
+                <p className="text-xs text-slate-300">
+                  Example format: <code className="text-indigo-200 bg-white/[0.08] px-1.5 py-0.5 rounded">https://www.linkedin.com/in/alex-rivera-123</code>
                 </p>
               </div>
 
               {/* Third-Party Restriction Warning Banner */}
               {thirdPartyWarning && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200 space-y-3">
+                <div className="rounded-xl border border-amber-400/35 bg-amber-500/15 p-4 text-xs text-amber-100 space-y-3">
                   <div className="flex items-start gap-2.5">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <AlertTriangle className="h-5 w-5 text-amber-300 shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                      <p className="font-bold text-sm text-amber-950 dark:text-amber-100">
+                      <p className="font-bold text-sm text-amber-100">
                         Third-Party Profile Privacy Notice
                       </p>
-                      <p className="leading-relaxed">
-                        The requested URL (<code className="font-mono bg-amber-100/70 dark:bg-amber-900/50 px-1 py-0.5 rounded">{thirdPartyWarning.requestedUrl}</code>) does not match your currently authenticated LinkedIn account {thirdPartyWarning.authenticatedMember?.name ? `(${thirdPartyWarning.authenticatedMember.name})` : ''}.
+                      <p className="leading-relaxed text-amber-100/90">
+                        The requested URL (<code className="font-mono bg-black/25 px-1.5 py-0.5 rounded text-amber-200">{thirdPartyWarning.requestedUrl}</code>) does not match your currently authenticated LinkedIn account {thirdPartyWarning.authenticatedMember?.name ? `(${thirdPartyWarning.authenticatedMember.name})` : ''}.
                       </p>
-                      <p className="leading-relaxed">
+                      <p className="leading-relaxed text-amber-100/90">
                         Under LinkedIn's official OAuth 2.0 and API privacy guidelines, applications cannot access or scrape private resume data of other members without their explicit authorization.
                       </p>
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-amber-200/60 dark:border-amber-800/60 flex flex-wrap items-center gap-3">
-                    <span className="font-semibold text-amber-900 dark:text-amber-200">
+                  <div className="pt-2 border-t border-amber-400/25 flex flex-wrap items-center gap-3">
+                    <span className="font-semibold text-amber-100">
                       Recommended Alternative:
                     </span>
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-8 text-xs bg-white dark:bg-slate-900"
+                      className="h-8 text-xs"
                       onClick={() => setActiveInputTab('form')}
                     >
                       Paste Text in Manual Form
@@ -1862,7 +1948,7 @@ export function ProfileOptimizerPage({
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-8 text-xs text-amber-900 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-900/40"
+                      className="h-8 text-xs text-amber-100 hover:bg-amber-500/20"
                       onClick={handleLoadSample}
                     >
                       Pre-fill Sample Profile
@@ -1873,11 +1959,11 @@ export function ProfileOptimizerPage({
 
               {/* Authorized Profile Data Summary Card */}
               {fetchedProfileInfo?.profile && (
-                <div className="rounded-xl border border-blue-200 bg-blue-50/50 dark:border-blue-900/50 dark:bg-blue-950/20 p-4 space-y-4">
+                <div className="rounded-xl border border-indigo-400/30 bg-indigo-500/10 p-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5 text-[#0a66c2]" />
-                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                      <ShieldCheck className="h-5 w-5 text-sky-400" />
+                      <span className="text-sm font-bold text-white">
                         Authorized LinkedIn Data Retrieved
                       </span>
                     </div>
@@ -1887,26 +1973,26 @@ export function ProfileOptimizerPage({
                   </div>
 
                   {/* Profile Card Header */}
-                  <div className="flex items-center gap-3.5 bg-white dark:bg-slate-800/80 p-3.5 rounded-lg border border-slate-100 dark:border-slate-700">
+                  <div className="flex items-center gap-3.5 bg-white/[0.06] p-3.5 rounded-lg border border-white/15">
                     {fetchedProfileInfo.profile.picture ? (
                       <img
                         src={fetchedProfileInfo.profile.picture}
                         alt={fetchedProfileInfo.profile.fullName || 'Member Profile'}
-                        className="h-12 w-12 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-xs"
+                        className="h-12 w-12 rounded-full object-cover border border-white/20 shadow-xs"
                       />
                     ) : (
-                      <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-base">
+                      <div className="h-12 w-12 rounded-full bg-indigo-500/30 flex items-center justify-center text-indigo-100 font-bold text-base">
                         {fetchedProfileInfo.profile.fullName
                           ? fetchedProfileInfo.profile.fullName.charAt(0)
                           : 'U'}
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                      <p className="text-sm font-bold text-white truncate">
                         {fetchedProfileInfo.profile.fullName || 'Authorized Member'}
                       </p>
                       {fetchedProfileInfo.profile.email && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        <p className="text-xs text-slate-200 truncate">
                           {fetchedProfileInfo.profile.email}
                         </p>
                       )}
@@ -1915,7 +2001,7 @@ export function ProfileOptimizerPage({
                           href={fetchedProfileInfo.profile.profileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-[#0a66c2] hover:underline truncate block"
+                          className="text-xs text-sky-300 hover:underline truncate block"
                         >
                           {fetchedProfileInfo.profile.profileUrl}
                         </a>
@@ -1925,32 +2011,32 @@ export function ProfileOptimizerPage({
 
                   {/* Retrieved vs Missing Fields Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-emerald-100 dark:border-emerald-900/40">
-                      <div className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400 mb-2">
+                    <div className="p-3 bg-white/[0.06] rounded-lg border border-emerald-400/25">
+                      <div className="flex items-center gap-1.5 font-bold text-emerald-300 mb-2">
                         <CheckCircle2 className="h-4 w-4" />
                         <span>Retrieved via Official API:</span>
                       </div>
-                      <ul className="space-y-1 text-slate-600 dark:text-slate-300">
+                      <ul className="space-y-1 text-slate-100">
                         {fetchedProfileInfo.availableFields.map((f) => (
                           <li key={f} className="flex items-center gap-1.5">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                             <span className="capitalize">{f}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
 
-                    <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-amber-100 dark:border-amber-900/40">
-                      <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400 mb-2">
+                    <div className="p-3 bg-white/[0.06] rounded-lg border border-amber-400/25">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-300 mb-2">
                         <Info className="h-4 w-4" />
                         <span>Restricted by LinkedIn API:</span>
                       </div>
-                      <ul className="space-y-1 text-slate-600 dark:text-slate-300">
+                      <ul className="space-y-1 text-slate-100">
                         {fetchedProfileInfo.missingFields.map((f) => (
                           <li key={f} className="flex items-center gap-1.5">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                             <span className="capitalize">{f}</span>
-                            <span className="text-[10px] text-slate-400">(Manual review required)</span>
+                            <span className="text-[10px] text-slate-300">(Manual review required)</span>
                           </li>
                         ))}
                       </ul>
@@ -1958,7 +2044,7 @@ export function ProfileOptimizerPage({
                   </div>
 
                   {/* API Privacy limitations callout */}
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-white/70 dark:bg-slate-900/40 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-800 flex items-start justify-between gap-2">
+                  <div className="text-[11px] text-slate-200 bg-white/[0.06] p-2.5 rounded-lg border border-white/15 flex items-start justify-between gap-2">
                     <p className="leading-relaxed">
                       <strong>API Privacy Transparency:</strong> {fetchedProfileInfo.limitationsNotice || 'LinkedIn restricts headline, about, and experience access to Enterprise Talent accounts. Review and complete the remaining fields below to perform your algorithmic audit.'}
                     </p>
@@ -1966,7 +2052,7 @@ export function ProfileOptimizerPage({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="shrink-0 h-7 text-[11px] text-[#0a66c2]"
+                      className="shrink-0 h-7 text-[11px] text-sky-300 hover:text-sky-200"
                       onClick={handlePreFillMissingFields}
                     >
                       Pre-fill Sample Data
@@ -1976,16 +2062,16 @@ export function ProfileOptimizerPage({
               )}
 
               {/* Review & Complete Remaining Fields Form */}
-              <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="space-y-4 pt-2 border-t border-white/15">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-sm font-bold text-white">
                     Review & Complete Profile Details for Audit
                   </h3>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-xs text-[#0a66c2]"
+                    className="h-7 text-xs text-sky-300 hover:text-sky-200"
                     onClick={handlePreFillMissingFields}
                   >
                     Quick-fill Sample
@@ -2002,16 +2088,16 @@ export function ProfileOptimizerPage({
                 </div>
 
                 {/* Career Goal Selector in URL Tab */}
-                <div className="p-3 rounded-xl border border-blue-100 bg-blue-50/50 dark:border-blue-950/60 dark:bg-blue-950/20 space-y-2">
+                <div className="p-3 rounded-xl border border-indigo-400/25 bg-indigo-500/10 space-y-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-[#0a66c2]" />
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
+                      <span className="text-xs font-bold text-white">
                         What is your career goal?
                       </span>
                     </div>
                     {isRoleDivergent && (
-                      <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900">
+                      <span className="text-[10px] font-semibold text-amber-200 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-400/35">
                         Target role differs from profile
                       </span>
                     )}
@@ -2022,15 +2108,15 @@ export function ProfileOptimizerPage({
                       onClick={() => setCareerIntent('current-field')}
                       className={`p-2.5 rounded-lg border text-left text-xs transition-all flex flex-col justify-between ${
                         careerIntent === 'current-field'
-                          ? 'border-[#0a66c2] bg-white dark:bg-slate-800 shadow-sm ring-1 ring-[#0a66c2]/30 text-slate-900 dark:text-white font-semibold'
-                          : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                          ? 'border-indigo-400 bg-indigo-500/25 shadow-sm ring-1 ring-indigo-400/30 text-white font-semibold'
+                          : 'border-white/15 bg-white/[0.06] text-slate-200 hover:bg-white/[0.1] hover:border-white/25'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="font-bold">Continue Current Career</span>
-                        {careerIntent === 'current-field' && <Check className="w-3 h-3 text-[#0a66c2]" />}
+                        <span className="font-bold text-white">Continue Current Career</span>
+                        {careerIntent === 'current-field' && <Check className="w-3 h-3 text-indigo-300" />}
                       </div>
-                      <p className="text-[10px] text-slate-500 font-normal">
+                      <p className="text-[10px] text-slate-200 font-normal">
                         Advance in existing field with seniority & progression.
                       </p>
                     </button>
@@ -2040,15 +2126,15 @@ export function ProfileOptimizerPage({
                       onClick={() => setCareerIntent('career-switcher')}
                       className={`p-2.5 rounded-lg border text-left text-xs transition-all flex flex-col justify-between ${
                         careerIntent === 'career-switcher'
-                          ? 'border-[#0a66c2] bg-white dark:bg-slate-800 shadow-sm ring-1 ring-[#0a66c2]/30 text-slate-900 dark:text-white font-semibold'
-                          : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                          ? 'border-indigo-400 bg-indigo-500/25 shadow-sm ring-1 ring-indigo-400/30 text-white font-semibold'
+                          : 'border-white/15 bg-white/[0.06] text-slate-200 hover:bg-white/[0.1] hover:border-white/25'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="font-bold">Transition to New Career</span>
-                        {careerIntent === 'career-switcher' && <Check className="w-3 h-3 text-[#0a66c2]" />}
+                        <span className="font-bold text-white">Transition to New Career</span>
+                        {careerIntent === 'career-switcher' && <Check className="w-3 h-3 text-indigo-300" />}
                       </div>
-                      <p className="text-[10px] text-slate-500 font-normal">
+                      <p className="text-[10px] text-slate-200 font-normal">
                         Move to a different career with transferable skills.
                       </p>
                     </button>
@@ -2058,15 +2144,15 @@ export function ProfileOptimizerPage({
                       onClick={() => setCareerIntent('related-role')}
                       className={`p-2.5 rounded-lg border text-left text-xs transition-all flex flex-col justify-between ${
                         careerIntent === 'related-role'
-                          ? 'border-[#0a66c2] bg-white dark:bg-slate-800 shadow-sm ring-1 ring-[#0a66c2]/30 text-slate-900 dark:text-white font-semibold'
-                          : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                          ? 'border-indigo-400 bg-indigo-500/25 shadow-sm ring-1 ring-indigo-400/30 text-white font-semibold'
+                          : 'border-white/15 bg-white/[0.06] text-slate-200 hover:bg-white/[0.1] hover:border-white/25'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="font-bold">Explore a Related Role</span>
-                        {careerIntent === 'related-role' && <Check className="w-3 h-3 text-[#0a66c2]" />}
+                        <span className="font-bold text-white">Explore a Related Role</span>
+                        {careerIntent === 'related-role' && <Check className="w-3 h-3 text-indigo-300" />}
                       </div>
-                      <p className="text-[10px] text-slate-500 font-normal">
+                      <p className="text-[10px] text-slate-200 font-normal">
                         Target an adjacent role or specialization.
                       </p>
                     </button>
@@ -2075,10 +2161,10 @@ export function ProfileOptimizerPage({
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="text-xs font-semibold text-slate-100">
                       Headline
                     </label>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-slate-300">
                       {headline.length} / 220
                     </span>
                   </div>
@@ -2095,10 +2181,10 @@ export function ProfileOptimizerPage({
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="text-xs font-semibold text-slate-100">
                       About / Career Summary
                     </label>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-slate-300">
                       {about.trim() ? about.trim().split(/\s+/).length : 0} words
                     </span>
                   </div>
@@ -2115,12 +2201,20 @@ export function ProfileOptimizerPage({
                 </div>
 
                 {/* Experience & Skills summary in URL tab */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/30 text-xs gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-white/15 bg-white/[0.06] text-xs gap-3">
                   <div>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      Experience: {experience.length > 0 ? `${experience.length} roles` : experienceStatus === 'fresher' ? 'Fresher (0 roles - Optional)' : 'Unavailable (Optional)'} · Skills: {skills.length} tags
+                    <span className="font-semibold text-white">
+                      Experience:{' '}
+                      {experienceStatus === 'fresher'
+                        ? 'Fresher (0 roles - Optional)'
+                        : experienceStatus === 'unavailable'
+                        ? 'Unavailable (Optional)'
+                        : experience.length > 0
+                        ? `${experience.length} roles`
+                        : '0 roles (Optional)'}{' '}
+                      · Skills: {skills.length} tags
                     </span>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-[11px] text-slate-200 mt-0.5">
                       Experience is optional: an empty experience section will not block the audit or penalize freshers.
                     </p>
                   </div>
@@ -2141,12 +2235,12 @@ export function ProfileOptimizerPage({
           {/* TAB 3: RESUME / PDF UPLOAD */}
           {activeInputTab === 'pdf' && (
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-[#0a66c2] transition-colors cursor-pointer bg-slate-50/50 dark:bg-slate-900/50">
-                <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <div className="border-2 border-dashed border-white/25 rounded-xl p-8 text-center hover:border-indigo-400 transition-colors cursor-pointer bg-white/[0.05]">
+                <Upload className="h-8 w-8 text-slate-200 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-white">
                   {uploadedFileName || 'Drop your LinkedIn PDF export or Resume here'}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-200 mt-1">
                   Supports PDF up to 10MB (LinkedIn: Profile → More → Save to PDF)
                 </p>
                 <input
@@ -2164,21 +2258,21 @@ export function ProfileOptimizerPage({
                 />
                 <label
                   htmlFor="pdf-upload-input"
-                  className="mt-4 inline-block px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold cursor-pointer hover:bg-slate-50 shadow-xs"
+                  className="mt-4 inline-block px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg text-xs font-semibold cursor-pointer hover:bg-white/20 shadow-xs transition-colors"
                 >
                   Browse Files
                 </label>
               </div>
-              <p className="text-xs text-slate-500 text-center">
+              <p className="text-xs text-slate-300 text-center">
                 PDF text extraction automatically maps headline, summary, and experience to the manual editor.
               </p>
             </div>
           )}
 
           {/* Target Tone Selection & Analyze Button */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="pt-4 border-t border-white/15 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
                 Target Tone:
               </span>
               {[
@@ -2193,8 +2287,8 @@ export function ProfileOptimizerPage({
                   onClick={() => handleToneChange(t.id as OptimizationTone)}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     targetTone === t.id
-                      ? 'bg-blue-50 text-[#0a66c2] border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+                      ? 'bg-indigo-500/25 text-white border border-indigo-400/40 shadow-xs'
+                      : 'text-slate-200 bg-white/[0.05] border border-white/10 hover:bg-white/[0.12] hover:text-white'
                   }`}
                 >
                   {t.label}
@@ -2204,6 +2298,8 @@ export function ProfileOptimizerPage({
 
             <Button
               size="lg"
+              data-profile-audit-trigger="true"
+              data-audit-label="Analyzing Your LinkedIn Profile..."
               onClick={() => handleRunAudit()}
               isLoading={isAuditing}
               leftIcon={<Sparkles className="h-4 w-4" />}
@@ -2221,11 +2317,11 @@ export function ProfileOptimizerPage({
         <div className="space-y-6 animate-slide-up">
           {/* AI vs Heuristic Operational Status Banner */}
           {analysisResult.isAiPowered ? (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-900 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-300 flex items-center justify-between gap-3 shadow-xs">
+            <div className="rounded-xl border border-emerald-400/35 bg-emerald-500/15 p-3.5 text-xs text-emerald-100 flex items-center justify-between gap-3 shadow-xs">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-emerald-600 shrink-0" />
+                <Sparkles className="h-4 w-4 text-emerald-300 shrink-0" />
                 <span>
-                  <strong>Live AI Synthesis Active:</strong> High-impact rewrites and keyword suggestions generated live via <span className="font-mono font-semibold">{analysisResult.engineUsed}</span> with strict anti-fabrication constraints.
+                  <strong>Live AI Synthesis Active:</strong> High-impact rewrites and keyword suggestions generated live via <span className="font-mono font-semibold text-white">{analysisResult.engineUsed}</span> with strict anti-fabrication constraints.
                 </span>
               </div>
               <Badge variant="success" size="sm" className="shrink-0 text-[10px]">
@@ -2233,9 +2329,9 @@ export function ProfileOptimizerPage({
               </Badge>
             </div>
           ) : analysisResult.fallbackReason ? (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-300 flex items-center justify-between gap-3 shadow-xs">
+            <div className="rounded-xl border border-amber-400/35 bg-amber-500/15 p-3.5 text-xs text-amber-100 flex items-center justify-between gap-3 shadow-xs">
               <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                <AlertCircle className="h-4 w-4 text-amber-300 shrink-0" />
                 <span>
                   <strong>AI Unavailable (Fallback Engaged):</strong> {analysisResult.fallbackReason}. Suggestions generated deterministically via the built-in Heuristic Analyzer.
                 </span>
@@ -2247,9 +2343,9 @@ export function ProfileOptimizerPage({
           ) : null}
 
           {/* Transparent Score Disclaimer Alert */}
-          <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3.5 text-xs text-blue-900 dark:border-slate-700 dark:bg-slate-800/40 dark:text-blue-300 flex items-center justify-between gap-3">
+          <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/15 p-3.5 text-xs text-indigo-100 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-[#0a66c2] shrink-0" />
+              <ShieldCheck className="h-4 w-4 text-sky-400 shrink-0" />
               <span>
                 <strong>Algorithmic Heuristic Score (0-100):</strong> Independent talent acquisition benchmark analyzing clarity, keyword density, and quantifiable outcomes. Not an official LinkedIn score.
               </span>
@@ -2260,18 +2356,18 @@ export function ProfileOptimizerPage({
           </div>
 
           {/* Overall Score Header Card */}
-          <Card className="bg-gradient-to-br from-blue-50/80 to-indigo-50/40 dark:from-slate-800 dark:to-slate-800/50 border-blue-100 dark:border-slate-700 shadow-sm">
+          <Card className="bg-gradient-to-br from-indigo-500/20 to-blue-500/15 border-indigo-400/30 shadow-sm">
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#0a66c2] dark:text-blue-400">
+                  <span className="text-xs font-bold uppercase tracking-wider text-sky-300">
                     Overall Profile Strength
                   </span>
                   <div className="mt-2 flex items-baseline gap-3">
-                    <span className="text-5xl font-black text-slate-900 dark:text-white">
+                    <span className="text-5xl font-black text-white">
                       {analysisResult.overallScore}
                     </span>
-                    <span className="text-base font-bold text-slate-400">
+                    <span className="text-base font-bold text-slate-300">
                       / 100
                     </span>
                     <Badge
@@ -2287,11 +2383,11 @@ export function ProfileOptimizerPage({
                       {analysisResult.overallRating}
                     </Badge>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 max-w-xl leading-relaxed">
+                  <p className="text-xs text-slate-100 mt-2 max-w-xl leading-relaxed">
                     {analysisResult.summary}
                   </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2.5 flex items-center gap-1.5 font-medium">
-                    <ShieldCheck className="h-3.5 w-3.5 text-[#0a66c2]" />
+                  <p className="text-[11px] text-slate-200 mt-2.5 flex items-center gap-1.5 font-medium">
+                    <ShieldCheck className="h-3.5 w-3.5 text-sky-400" />
                     <span>Audited by LinkedPulse &middot; Based on algorithmic recruiter heuristics, not an official LinkedIn metric.</span>
                   </p>
                 </div>
@@ -2300,7 +2396,10 @@ export function ProfileOptimizerPage({
                   <Button
                     variant="outline"
                     size="sm"
+                    data-profile-audit-trigger="true"
+                    data-audit-label="Analyzing Your LinkedIn Profile..."
                     onClick={() => handleRunAudit()}
+                    isLoading={isAuditing}
                     leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
                   >
                     Re-run Analysis
@@ -2312,18 +2411,18 @@ export function ProfileOptimizerPage({
 
           {/* 5 Individual Category Score Breakdown with Positive & Deduction Explanations */}
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">
+            <h2 className="text-lg font-bold text-white mb-3">
               Category Breakdown & Score Explanations
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(analysisResult.categories).map(([catKey, cat]) => (
                 <Card
                   key={catKey}
-                  className="hover:border-[#0a66c2]/40 transition-all shadow-xs"
+                  className="hover:border-indigo-400/40 transition-all shadow-xs"
                 >
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <span className="text-xs font-bold text-white">
                         {cat.name}
                       </span>
                       <Badge
@@ -2341,7 +2440,7 @@ export function ProfileOptimizerPage({
                     </div>
 
                     <div className="mt-2.5">
-                      <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                      <div className="h-1.5 w-full rounded-full bg-white/15 overflow-hidden">
                         <div
                           className={`h-full rounded-full ${
                             cat.score >= 80
@@ -2355,16 +2454,16 @@ export function ProfileOptimizerPage({
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                    <p className="text-xs text-slate-200 mt-2 leading-relaxed">
                       {cat.feedback}
                     </p>
 
                     {/* Expand/Collapse Explanation details */}
-                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <div className="mt-3 pt-3 border-t border-white/15">
                       <button
                         type="button"
                         onClick={() => toggleCategoryExpand(catKey)}
-                        className="flex items-center justify-between w-full text-[11px] font-bold text-[#0a66c2] dark:text-blue-400"
+                        className="flex items-center justify-between w-full text-[11px] font-bold text-sky-300 hover:text-sky-200"
                       >
                         <span>
                           {expandedCategories[catKey]
@@ -2382,16 +2481,16 @@ export function ProfileOptimizerPage({
                         <div className="mt-2 space-y-2 text-[11px] animate-fade-in">
                           {cat.positiveFactors.length > 0 && (
                             <div>
-                              <span className="font-semibold text-emerald-600 block mb-1">
+                              <span className="font-semibold text-emerald-300 block mb-1">
                                 Positive Factors (+ Points):
                               </span>
                               <ul className="space-y-1">
                                 {cat.positiveFactors.map((pos, i) => (
                                   <li
                                     key={i}
-                                    className="text-slate-600 dark:text-slate-300 flex items-start gap-1.5"
+                                    className="text-slate-100 flex items-start gap-1.5"
                                   >
-                                    <Check className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5" />
+                                    <Check className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" />
                                     <span>{pos}</span>
                                   </li>
                                 ))}
@@ -2401,14 +2500,14 @@ export function ProfileOptimizerPage({
 
                           {cat.deductions.length > 0 && (
                             <div className="pt-1">
-                              <span className="font-semibold text-red-500 block mb-1">
+                              <span className="font-semibold text-red-300 block mb-1">
                                 Deductions (- Points):
                               </span>
                               <ul className="space-y-1">
                                 {cat.deductions.map((ded, i) => (
                                   <li
                                     key={i}
-                                    className="text-slate-600 dark:text-slate-400 flex items-start gap-1.5"
+                                    className="text-slate-200 flex items-start gap-1.5"
                                   >
                                     <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
                                     <span>{ded}</span>
@@ -2432,17 +2531,17 @@ export function ProfileOptimizerPage({
           <div className="space-y-4 pt-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                <h2 className="text-lg font-bold text-white">
                   Profile Improvements (Side-by-Side)
                 </h2>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-200">
                   Compare your original copy against recruiter-optimized rewrites. Edit, copy, or regenerate in any tone.
                 </p>
               </div>
 
               {/* Tone Quick Re-generator */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-slate-400">Tone:</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-semibold text-slate-200">Tone:</span>
                 {(['recruiter', 'thought-leader', 'tech', 'founder'] as OptimizationTone[]).map((t) => (
                   <button
                     key={t}
@@ -2450,8 +2549,8 @@ export function ProfileOptimizerPage({
                     onClick={() => handleToneChange(t)}
                     className={`px-2 py-1 rounded text-xs font-bold capitalize transition-all ${
                       targetTone === t
-                        ? 'bg-[#0a66c2] text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                        ? 'bg-indigo-500 text-white'
+                        : 'bg-white/[0.08] text-slate-200 hover:bg-white/[0.16] hover:text-white'
                     }`}
                   >
                     {t.replace('-', ' ')}
@@ -2461,7 +2560,7 @@ export function ProfileOptimizerPage({
             </div>
 
             {/* Section Navigation Tabs */}
-            <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1 overflow-x-auto pb-1">
+            <div className="flex border-b border-white/15 gap-1 overflow-x-auto pb-1">
               {(['headline', 'about', 'experience', 'skills'] as SectionType[]).map(
                 (sec) => {
                   const section = analysisResult.improvements[sec]
@@ -2475,12 +2574,12 @@ export function ProfileOptimizerPage({
                       }}
                       className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
                         activeSection === sec
-                          ? 'border-[#0a66c2] text-[#0a66c2] dark:text-blue-400'
-                          : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                          ? 'border-indigo-400 text-white'
+                          : 'border-transparent text-slate-300 hover:text-white'
                       }`}
                     >
                       <span>{section.name}</span>
-                      <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-slate-100">
                         {section.score}/100
                       </span>
                     </button>
@@ -2493,13 +2592,13 @@ export function ProfileOptimizerPage({
             {currentImprovement && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Original Section Card */}
-                <Card className="border-slate-200 dark:border-slate-800">
-                  <CardHeader className="flex flex-row items-center justify-between pb-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-t-xl">
+                <Card className="border-white/15">
+                  <CardHeader className="flex flex-row items-center justify-between pb-3 bg-white/[0.04] rounded-t-xl border-b border-white/10">
                     <div>
-                      <CardTitle className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                      <CardTitle className="text-sm font-bold text-white">
                         Original {currentImprovement.name}
                       </CardTitle>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-slate-300">
                         Before optimization audit
                       </span>
                     </div>
@@ -2508,11 +2607,11 @@ export function ProfileOptimizerPage({
                     </Badge>
                   </CardHeader>
                   <CardContent className="p-5">
-                    <div className="rounded-lg bg-slate-50 dark:bg-slate-900/80 p-4 border border-slate-200/60 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap min-h-[140px]">
+                    <div className="rounded-lg bg-slate-950/50 p-4 border border-white/15 text-xs text-slate-100 leading-relaxed whitespace-pre-wrap min-h-[140px]">
                       {currentImprovement.original || 'None provided'}
                     </div>
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400">
+                    <div className="mt-4 pt-3 border-t border-white/15 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-300">
                         {currentImprovement.original
                           ? 'Original profile content preserved'
                           : 'Section was empty'}
@@ -2522,7 +2621,7 @@ export function ProfileOptimizerPage({
                           size="sm"
                           variant="outline"
                           onClick={() => handleRevertOriginal(activeSection)}
-                          leftIcon={<RotateCcw className="h-3.5 w-3.5 text-blue-500" />}
+                          leftIcon={<RotateCcw className="h-3.5 w-3.5 text-sky-400" />}
                         >
                           Revert to Original
                         </Button>
@@ -2532,15 +2631,15 @@ export function ProfileOptimizerPage({
                 </Card>
 
                 {/* AI-Optimized Section Card */}
-                <Card className="border-[#0a66c2]/40 shadow-md">
-                  <CardHeader className="flex flex-row items-center justify-between pb-3 bg-blue-50/40 dark:bg-blue-950/20 rounded-t-xl border-b border-[#0a66c2]/20">
+                <Card className="border-indigo-400/40 shadow-md">
+                  <CardHeader className="flex flex-row items-center justify-between pb-3 bg-indigo-500/15 rounded-t-xl border-b border-indigo-400/25">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-[#0a66c2]" />
+                      <Sparkles className="h-4 w-4 text-indigo-300" />
                       <div>
-                        <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">
+                        <CardTitle className="text-sm font-bold text-white">
                           Optimized {currentImprovement.name}
                         </CardTitle>
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-slate-200">
                           {targetTone.replace('-', ' ')} formulation
                         </span>
                       </div>
@@ -2575,23 +2674,23 @@ export function ProfileOptimizerPage({
                         </div>
                       </div>
                     ) : (
-                      <div className="rounded-lg bg-blue-50/30 dark:bg-blue-950/10 p-4 border border-blue-200/50 dark:border-blue-900/40 text-xs text-slate-900 dark:text-slate-100 leading-relaxed whitespace-pre-wrap min-h-[140px]">
+                      <div className="rounded-lg bg-indigo-500/10 p-4 border border-indigo-400/25 text-xs text-white leading-relaxed whitespace-pre-wrap min-h-[140px]">
                         {currentImprovement.optimized}
                       </div>
                     )}
 
                     {/* Specific Applied Suggestions Checklist */}
                     <div className="mt-4">
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-2">
+                      <span className="text-xs font-bold text-slate-200 block mb-2">
                         Enhancements Applied:
                       </span>
                       <div className="space-y-1.5">
                         {currentImprovement.suggestions.map((sug, idx) => (
                           <div
                             key={idx}
-                            className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300"
+                            className="flex items-start gap-2 text-xs text-slate-100"
                           >
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
                             <span>{sug}</span>
                           </div>
                         ))}
@@ -2599,7 +2698,7 @@ export function ProfileOptimizerPage({
                     </div>
 
                     {/* Copy, Apply, and Edit Actions */}
-                    <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                    <div className="mt-5 pt-3 border-t border-white/15 flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2">
                         <Button
                           size="sm"
@@ -2625,7 +2724,7 @@ export function ProfileOptimizerPage({
                                 currentImprovement.optimized
                               )
                             }
-                            leftIcon={<Sparkles className="h-3.5 w-3.5 text-[#0a66c2]" />}
+                            leftIcon={<Sparkles className="h-3.5 w-3.5 text-indigo-300" />}
                           >
                             Apply to Form Editor
                           </Button>
@@ -2666,11 +2765,11 @@ export function ProfileOptimizerPage({
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-[#0a66c2]" />
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-white">
+                    <Sparkles className="h-4 w-4 text-sky-400" />
                     Profile Skills vs Recruiter Hiring Benchmarks ({analysisResult.keywordInsights.targetRole})
                   </CardTitle>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-200 mt-0.5">
                     Transparent comparison between your verified profile skills and standard market search queries
                   </p>
                 </div>
@@ -2683,11 +2782,11 @@ export function ProfileOptimizerPage({
               {/* 1. Verified Profile Skills */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
+                  <span className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-sky-400" />
                     Verified Skills in Your Profile ({skills.length} skills):
                   </span>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-slate-300">
                     Existing profile data preserved
                   </span>
                 </div>
@@ -2702,18 +2801,18 @@ export function ProfileOptimizerPage({
                           key={i}
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${
                             isMatched
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                              : 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                              ? 'bg-emerald-500/20 text-emerald-100 border-emerald-400/35'
+                              : 'bg-white/[0.08] text-slate-100 border-white/15'
                           }`}
                         >
                           {isMatched ? (
-                            <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                            <Check className="h-3 w-3 text-emerald-300" />
                           ) : (
-                            <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
                           )}
                           {skill}
                           {isMatched && (
-                            <span className="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 px-1.5 py-0.2 rounded font-normal">
+                            <span className="text-[10px] bg-emerald-400/25 text-emerald-100 px-1.5 py-0.2 rounded font-normal">
                               Matched
                             </span>
                           )}
@@ -2721,7 +2820,7 @@ export function ProfileOptimizerPage({
                       )
                     })
                   ) : (
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-slate-300">
                       No skills listed in profile.
                     </span>
                   )}
@@ -2731,16 +2830,16 @@ export function ProfileOptimizerPage({
               {/* 2. Target Role Transferable / Matched Skills */}
               {analysisResult.keywordInsights.matchedKeywords.length > 0 && (
                 <div>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 block mb-2">
+                  <span className="text-xs font-bold text-emerald-300 block mb-2">
                     Direct & Transferable Matches for {analysisResult.keywordInsights.targetRole}:
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {analysisResult.keywordInsights.matchedKeywords.map((kw, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs font-semibold"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-100 border border-emerald-400/35 text-xs font-semibold"
                       >
-                        <Check className="h-3 w-3 text-emerald-500" />
+                        <Check className="h-3 w-3 text-emerald-300" />
                         {kw}
                       </span>
                     ))}
@@ -2750,17 +2849,17 @@ export function ProfileOptimizerPage({
 
               {/* 3. Recommended Market Benchmarks to Learn / Add Once Verified */}
               {analysisResult.keywordInsights.missingRecommendedKeywords.length > 0 && (
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="pt-2 border-t border-white/15">
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                    <span className="text-xs font-bold text-amber-300">
                       Recommended Market Benchmarks to Consider Adding:
                     </span>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-slate-300">
                       Click to add only if practiced
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-                    These are standard skills queried by recruiters for <strong>{analysisResult.keywordInsights.targetRole}</strong>. The audit does not claim you possess these; add them only once practiced in coursework, projects, or professional tasks.
+                  <p className="text-[11px] text-slate-200 mb-2">
+                    These are standard skills queried by recruiters for <strong className="text-white">{analysisResult.keywordInsights.targetRole}</strong>. The audit does not claim you possess these; add them only once practiced in coursework, projects, or professional tasks.
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {analysisResult.keywordInsights.missingRecommendedKeywords.map(
@@ -2772,7 +2871,7 @@ export function ProfileOptimizerPage({
                             handleAddSkill(rec)
                             handleRunAudit()
                           }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-700 border border-dashed border-slate-300 hover:border-[#0a66c2] hover:text-[#0a66c2] dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700 text-xs font-medium transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] text-slate-100 border border-dashed border-white/25 hover:border-indigo-400 hover:text-white text-xs font-medium transition-colors"
                           title="Click to add to your verified profile skills"
                         >
                           + {rec}
@@ -2797,8 +2896,8 @@ export function ProfileOptimizerPage({
         description="Transparent Information Regarding LinkedIn URL Retrieval"
       >
         <div className="space-y-4 pt-2">
-          <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/60 dark:border-slate-700 dark:bg-slate-800/40 text-xs leading-relaxed text-slate-700 dark:text-slate-300 space-y-2">
-            <p className="font-bold text-slate-900 dark:text-white">
+          <div className="p-4 rounded-xl border border-indigo-400/25 bg-indigo-500/15 text-xs leading-relaxed text-slate-100 space-y-2">
+            <p className="font-bold text-white">
               Why automated direct profile scraping is restricted:
             </p>
             <p>
@@ -2812,7 +2911,7 @@ export function ProfileOptimizerPage({
             </p>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/15">
             <Button
               variant="outline"
               size="sm"
@@ -2822,6 +2921,8 @@ export function ProfileOptimizerPage({
             </Button>
             <Button
               size="sm"
+              data-profile-audit-trigger="true"
+              data-audit-label="Analyzing Your LinkedIn Profile..."
               onClick={() => {
                 setIsUrlModalOpen(false)
                 setActiveInputTab('form')
@@ -2846,68 +2947,68 @@ export function ProfileOptimizerPage({
       >
         <div className="space-y-4 pt-2 text-xs">
           {/* Active Engine Card */}
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-2 bg-slate-50/50 dark:bg-slate-800/40">
+          <div className="rounded-xl border border-white/15 p-4 space-y-2 bg-white/[0.06]">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                <Cpu className="h-4 w-4 text-[#0a66c2]" />
+              <span className="font-bold text-white flex items-center gap-1.5">
+                <Cpu className="h-4 w-4 text-sky-400" />
                 Selected Engine:
               </span>
               <Badge variant={engineMode === 'openrouter' ? 'linkedin' : 'default'} size="sm">
                 {engineMode === 'openrouter' ? 'OpenRouter AI (Server)' : 'Heuristic Engine (Local)'}
               </Badge>
             </div>
-            <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-              When <strong>OpenRouter AI</strong> is active, requests are routed to the secure Python backend which interacts with eligible free AI models using server-side credentials. If the server or model is congested, the system seamlessly falls back to the transparent local Heuristic Analyzer.
+            <p className="text-slate-200 leading-relaxed">
+              When <strong className="text-white">OpenRouter AI</strong> is active, requests are routed to the secure Python backend which interacts with eligible free AI models using server-side credentials. If the server or model is congested, the system seamlessly falls back to the transparent local Heuristic Analyzer.
             </p>
           </div>
 
           {/* Server Backend Status Card */}
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 space-y-2.5 bg-white dark:bg-slate-800/80">
+          <div className="rounded-xl border border-white/15 p-3.5 space-y-2.5 bg-white/[0.06]">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+              <span className="font-semibold text-white flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
                 Backend AI Diagnostics:
               </span>
               <span className="inline-flex items-center gap-1 text-[11px] font-medium">
                 {serverAiStatus?.status === 'ready' ? (
-                  <span className="text-emerald-600 flex items-center gap-1">
+                  <span className="text-emerald-300 flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" /> Server Online & Configured
                   </span>
                 ) : serverAiStatus?.status === 'unconfigured' ? (
-                  <span className="text-amber-500 flex items-center gap-1">
+                  <span className="text-amber-300 flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" /> Key Not Set in Server .env
                   </span>
                 ) : (
-                  <span className="text-slate-400 flex items-center gap-1">
+                  <span className="text-slate-300 flex items-center gap-1">
                     <Info className="h-3 w-3" /> Backend Offline (Port 8000)
                   </span>
                 )}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
+            <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-950/50 p-2.5 rounded-lg border border-white/10">
               <div>
-                <span className="text-slate-400 block text-[10px]">Primary Free Model:</span>
-                <span className="font-mono font-medium text-slate-700 dark:text-slate-300 truncate block">
+                <span className="text-slate-300 block text-[10px]">Primary Free Model:</span>
+                <span className="font-mono font-medium text-white truncate block">
                   {serverAiStatus?.model || 'meta-llama/llama-3.3-70b-instruct:free'}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px]">Security Architecture:</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-medium block">
+                <span className="text-slate-300 block text-[10px]">Security Architecture:</span>
+                <span className="text-emerald-300 font-medium block">
                   Server-Side Secrets (Zero Client Leak)
                 </span>
               </div>
             </div>
 
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
-              To configure your OpenRouter API key, add <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200">OPENROUTER_API_KEY=...</code> into the server environment or <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200">linkedin-optimizer/.env</code>.
+            <p className="text-[11px] text-slate-200 leading-normal">
+              To configure your OpenRouter API key, add <code className="px-1 py-0.5 rounded bg-white/15 text-white">OPENROUTER_API_KEY=...</code> into the server environment or <code className="px-1 py-0.5 rounded bg-white/15 text-white">linkedin-optimizer/.env</code>.
             </p>
           </div>
 
           {/* Engine Mode Selection */}
           <div className="space-y-2">
-            <label className="font-bold text-slate-800 dark:text-slate-200 block">
+            <label className="font-bold text-white block">
               Optimization Engine Preference:
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -2916,15 +3017,15 @@ export function ProfileOptimizerPage({
                 onClick={() => setEngineModeState('openrouter')}
                 className={`p-3 rounded-xl border text-left transition-all ${
                   engineMode === 'openrouter'
-                    ? 'border-[#0a66c2] bg-blue-50/50 dark:bg-blue-900/20 text-[#0a66c2]'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-600 dark:text-slate-300'
+                    ? 'border-indigo-400 bg-indigo-500/25 text-white'
+                    : 'border-white/15 bg-white/[0.05] hover:border-white/30 text-slate-200'
                 }`}
               >
                 <div className="font-bold text-xs flex items-center justify-between mb-1">
                   <span>OpenRouter AI</span>
-                  {engineMode === 'openrouter' && <Check className="h-3.5 w-3.5" />}
+                  {engineMode === 'openrouter' && <Check className="h-3.5 w-3.5 text-indigo-300" />}
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                <p className="text-[10px] text-slate-200 leading-tight">
                   Free LLM synthesis via backend proxy with heuristic fallback
                 </p>
               </button>
@@ -2934,15 +3035,15 @@ export function ProfileOptimizerPage({
                 onClick={() => setEngineModeState('heuristic')}
                 className={`p-3 rounded-xl border text-left transition-all ${
                   engineMode === 'heuristic'
-                    ? 'border-[#0a66c2] bg-blue-50/50 dark:bg-blue-900/20 text-[#0a66c2]'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-600 dark:text-slate-300'
+                    ? 'border-indigo-400 bg-indigo-500/25 text-white'
+                    : 'border-white/15 bg-white/[0.05] hover:border-white/30 text-slate-200'
                 }`}
               >
                 <div className="font-bold text-xs flex items-center justify-between mb-1">
                   <span>Heuristic Engine</span>
-                  {engineMode === 'heuristic' && <Check className="h-3.5 w-3.5" />}
+                  {engineMode === 'heuristic' && <Check className="h-3.5 w-3.5 text-indigo-300" />}
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                <p className="text-[10px] text-slate-200 leading-tight">
                   100% private in-browser analysis without external API calls
                 </p>
               </button>
@@ -2950,7 +3051,7 @@ export function ProfileOptimizerPage({
           </div>
 
           {/* Modal Actions */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between pt-2 border-t border-white/15">
             <Button
               variant="outline"
               size="sm"
@@ -2988,10 +3089,10 @@ export function ProfileOptimizerPage({
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
           {auditHistory.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              <FileText className="h-10 w-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-              <p className="font-semibold text-slate-700 dark:text-slate-300">No Audits Saved Yet</p>
-              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+            <div className="text-center py-8 text-slate-200">
+              <FileText className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+              <p className="font-semibold text-white">No Audits Saved Yet</p>
+              <p className="text-xs text-slate-300 mt-1 max-w-sm mx-auto">
                 Run an algorithmic audit on your profile to automatically record transparent scores and optimization history here.
               </p>
             </div>
@@ -3011,14 +3112,14 @@ export function ProfileOptimizerPage({
                 return (
                   <div
                     key={audit.id || idx}
-                    className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:border-[#0a66c2]/40 transition-all flex flex-col gap-2.5 shadow-xs"
+                    className="p-3.5 rounded-xl border border-white/15 bg-white/[0.06] hover:border-indigo-400/40 transition-all flex flex-col gap-2.5 shadow-xs"
                   >
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xl font-extrabold text-slate-900 dark:text-white">
+                        <span className="text-xl font-extrabold text-white">
                           {score}
                         </span>
-                        <span className="text-xs text-slate-400">/100</span>
+                        <span className="text-xs text-slate-300">/100</span>
                         <Badge
                           variant={
                             score >= 85
@@ -3034,29 +3135,29 @@ export function ProfileOptimizerPage({
                           {rating}
                         </Badge>
                       </div>
-                      <span className="text-[11px] text-slate-400 font-mono">{dateStr}</span>
+                      <span className="text-[11px] text-slate-300 font-mono">{dateStr}</span>
                     </div>
 
-                    <div className="text-xs text-slate-600 dark:text-slate-300">
-                      <span className="font-medium text-slate-900 dark:text-white">Target Role:</span>{' '}
+                    <div className="text-xs text-slate-100">
+                      <span className="font-medium text-white">Target Role:</span>{' '}
                       {target}
                     </div>
 
                     {audit.summary && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-slate-200 line-clamp-2 leading-relaxed">
                         {audit.summary}
                       </p>
                     )}
 
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-700/60">
-                      <span className="text-[10px] text-slate-400 font-medium">
+                    <div className="flex items-center justify-between pt-1 border-t border-white/15">
+                      <span className="text-[10px] text-slate-300 font-medium">
                         Engine: {audit.engineUsed || 'Heuristic Analyzer'}
                       </span>
                       {audit.improvements && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 text-[11px] text-[#0a66c2] hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                          className="h-6 text-[11px] text-sky-300 hover:bg-sky-500/15 hover:text-sky-200"
                           onClick={() => {
                             setAnalysisResult({
                               overallScore: audit.overallScore,
@@ -3093,3 +3194,4 @@ export function ProfileOptimizerPage({
     </div>
   )
 }
+

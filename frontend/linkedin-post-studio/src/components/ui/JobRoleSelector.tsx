@@ -142,7 +142,7 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
       {label && (
         <label
           htmlFor={selectorId}
-          className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
+          className="block text-sm font-semibold text-slate-200 mb-1.5"
         >
           {label}
         </label>
@@ -165,23 +165,23 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
           }
         }}
         className={cn(
-          'w-full min-h-[42px] px-3 py-2 rounded-lg border bg-white dark:bg-slate-800 text-sm cursor-pointer flex items-center justify-between transition-colors shadow-sm',
-          'focus:outline-none focus:ring-2 focus:ring-linkedin/30 focus:border-linkedin',
+          'w-full min-h-[42px] px-3 py-2 rounded-lg border bg-slate-950/45 text-sm cursor-pointer flex items-center justify-between transition-colors shadow-sm',
+          'focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400/60',
           error
-            ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500'
+            ? 'border-rose-400/60 focus:ring-rose-400/35 focus:border-rose-400'
             : isOpen
-            ? 'border-linkedin ring-2 ring-linkedin/20'
-            : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600'
+            ? 'border-indigo-400 ring-2 ring-indigo-400/25'
+            : 'border-white/20 hover:border-white/30'
         )}
       >
         <div className="flex items-center gap-2 flex-wrap flex-1 mr-2 overflow-hidden">
-          <Briefcase className="w-4 h-4 text-linkedin shrink-0" />
+          <Briefcase className="w-4 h-4 text-indigo-300 shrink-0" />
           {value ? (
-            <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+            <span className="font-semibold text-white truncate">
               {value}
             </span>
           ) : (
-            <span className="text-slate-400 dark:text-slate-500 select-none">
+            <span className="text-slate-400 select-none">
               {placeholder}
             </span>
           )}
@@ -193,27 +193,27 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
               type="button"
               onClick={handleClearSelection}
               title="Clear selected role"
-              className="p-1 rounded-full text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              className="p-1 rounded-full text-slate-300 hover:text-rose-300 hover:bg-white/10 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
           <ChevronDown
             className={cn(
-              'w-4 h-4 text-slate-400 transition-transform duration-200',
-              isOpen && 'rotate-180 text-linkedin'
+              'w-4 h-4 text-slate-300 transition-transform duration-200',
+              isOpen && 'rotate-180 text-indigo-300'
             )}
           />
         </div>
       </div>
 
       {error && (
-        <p className="mt-1.5 text-xs text-red-500 font-medium" role="alert">
+        <p className="mt-1.5 text-xs text-rose-400 font-medium" role="alert">
           {error}
         </p>
       )}
       {hint && !error && (
-        <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-1.5 text-xs text-slate-300">
           {hint}
         </p>
       )}
@@ -222,13 +222,13 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
       {isOpen && (
         <div
           role="listbox"
-          className="absolute z-50 mt-1.5 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100"
+          className="absolute z-50 mt-1.5 w-full glass-overlay rounded-xl overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100"
           style={{ maxHeight: '480px' }}
         >
           {/* Search Box */}
-          <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50">
+          <div className="p-2.5 border-b border-white/15 bg-white/5">
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -253,13 +253,13 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
                   }
                 }}
                 placeholder="Type to filter roles or enter custom..."
-                className="w-full pl-9 pr-8 py-2 text-xs md:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-linkedin/30 focus:border-linkedin"
+                className="w-full pl-9 pr-8 py-2 text-xs md:text-sm bg-slate-950/60 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400/60"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-white"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -268,9 +268,9 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
 
             {/* Popular quick-select chips (shown when search is empty or matches) */}
             {!searchQuery && (
-              <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-                  <Sparkles className="w-3 h-3 text-amber-500" />
+              <div className="mt-2.5 pt-2 border-t border-white/15">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-200 mb-1.5">
+                  <Sparkles className="w-3 h-3 text-amber-300" />
                   <span>Popular Roles (1-Click Select)</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -284,8 +284,8 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
                         className={cn(
                           'text-[11px] px-2.5 py-1 rounded-full font-medium transition-all text-left flex items-center gap-1',
                           isSelected
-                            ? 'bg-linkedin text-white shadow-sm'
-                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-linkedin hover:text-linkedin'
+                            ? 'bg-indigo-500 text-white shadow-sm'
+                            : 'bg-white/10 text-slate-100 border border-white/15 hover:border-indigo-400/50 hover:bg-indigo-500/20'
                         )}
                       >
                         {isSelected && <Check className="w-2.5 h-2.5" />}
@@ -300,11 +300,11 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
 
           {/* Add custom role banner */}
           {canAddCustomRole && (
-            <div className="p-2 border-b border-blue-100 dark:border-blue-900/40 bg-blue-50/80 dark:bg-blue-950/30">
+            <div className="p-2 border-b border-indigo-400/25 bg-indigo-500/15">
               <button
                 type="button"
                 onClick={handleAddCustomRole}
-                className="w-full text-left px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center justify-between shadow-sm transition-colors"
+                className="w-full text-left px-3 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-semibold flex items-center justify-between shadow-sm transition-colors"
               >
                 <div className="flex items-center gap-2 truncate mr-2">
                   <Plus className="w-4 h-4 shrink-0" />
@@ -321,16 +321,16 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
 
           {/* Scrollable Role Categories List */}
           <div
-            className="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"
+            className="overflow-y-auto divide-y divide-white/10"
             style={{ maxHeight: '320px' }}
           >
             {filteredCategories.length === 0 && !canAddCustomRole ? (
               <div className="py-8 px-4 text-center">
-                <Briefcase className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <Briefcase className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                <p className="text-xs text-slate-200">
                   No matching roles found for &ldquo;{searchQuery}&rdquo;.
                 </p>
-                <p className="text-[11px] text-slate-400 mt-1">
+                <p className="text-[11px] text-slate-300 mt-1">
                   Type at least 2 characters to use your search as a custom role.
                 </p>
               </div>
@@ -338,16 +338,16 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
               filteredCategories.map((category) => (
                 <div key={category.id} className="py-2">
                   {/* Category Header */}
-                  <div className="px-3 py-1 flex items-center justify-between sticky top-0 bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-sm z-10">
+                  <div className="px-3 py-1.5 flex items-center justify-between sticky top-0 bg-indigo-950/95 backdrop-blur-sm z-10 border-b border-white/10">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/25 border border-indigo-400/30 text-indigo-200 font-mono">
                         {category.code}
                       </span>
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      <span className="text-xs font-bold text-white truncate">
                         {category.name}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-medium shrink-0 ml-2">
+                    <span className="text-[10px] text-slate-300 font-medium shrink-0 ml-2">
                       {category.roles.length} roles
                     </span>
                   </div>
@@ -364,15 +364,15 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
                           className={cn(
                             'w-full text-left px-3 py-1.5 rounded-md text-xs font-medium flex items-center justify-between transition-colors group',
                             isSelected
-                              ? 'bg-linkedin/10 text-linkedin dark:bg-linkedin/20 font-bold'
-                              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                              ? 'bg-indigo-500/25 text-indigo-200 font-bold'
+                              : 'text-slate-100 hover:bg-white/10 hover:text-white'
                           )}
                         >
                           <span className="truncate mr-2">{role}</span>
                           {isSelected ? (
-                            <Check className="w-3.5 h-3.5 text-linkedin shrink-0" />
+                            <Check className="w-3.5 h-3.5 text-indigo-300 shrink-0" />
                           ) : (
-                            <span className="text-[10px] text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
                               Select
                             </span>
                           )}
@@ -386,7 +386,7 @@ export const JobRoleSelector: React.FC<JobRoleSelectorProps> = ({
           </div>
 
           {/* Footer info bar */}
-          <div className="p-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex items-center justify-between text-[11px] text-slate-400">
+          <div className="p-2 border-t border-white/15 bg-slate-950/60 flex items-center justify-between text-[11px] text-slate-300">
             <span>
               {totalFilteredCount} roles across {filteredCategories.length} categories
             </span>

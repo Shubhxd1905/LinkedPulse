@@ -124,9 +124,10 @@ export function LocalStorageMigrationBanner() {
       })
 
       if (res && res.status === 'success') {
-        // Mark as permanently migrated for this user
+        // Mark as permanently migrated for this user so the banner disappears and stays hidden
         localStorage.setItem(`linkedpulse_migrated_${user.id}`, 'true')
         setShouldShow(false)
+        window.dispatchEvent(new CustomEvent('linkedpulse:data-imported'))
         success(
           'Migration Complete!',
           `Successfully imported ${res.imported.draftsCount} draft(s) and synced your profile to your cloud account.`
@@ -144,15 +145,15 @@ export function LocalStorageMigrationBanner() {
   if (!shouldShow) return null
 
   return (
-    <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white py-3 px-4 shadow-md transition-all animate-fade-in relative z-40">
+    <div className="mx-4 mt-3 mb-1 glass-lg rounded-2xl border border-indigo-400/30 glow-indigo text-white py-3 px-4 transition-all animate-fade-in relative z-40">
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-xs shrink-0">
-            <CloudUpload className="h-4 w-4 text-white" />
+          <div className="p-2 rounded-xl bg-indigo-500/25 border border-indigo-400/30 shrink-0">
+            <CloudUpload className="h-4 w-4 text-indigo-300" />
           </div>
           <div>
-            <span className="font-bold">Sync your local data to the cloud:</span>{' '}
-            <span className="text-blue-100">
+            <span className="font-bold text-white">Sync your local data to the cloud:</span>{' '}
+            <span className="text-slate-300">
               We found {hasProfile ? 'a saved manual profile' : ''}
               {hasProfile && draftsCount > 0 ? ' and ' : ''}
               {draftsCount > 0 ? `${draftsCount} post draft(s)` : ''} on this device. Would you like to import them to your account?
@@ -165,7 +166,8 @@ export function LocalStorageMigrationBanner() {
             size="sm"
             variant="ghost"
             onClick={handleDismiss}
-            className="h-7 text-xs text-blue-100 hover:text-white hover:bg-white/10"
+            disabled={isImporting}
+            className="h-8 text-xs text-slate-300 hover:text-white hover:bg-white/10"
           >
             Not now
           </Button>
@@ -173,7 +175,7 @@ export function LocalStorageMigrationBanner() {
             size="sm"
             onClick={handleImport}
             disabled={isImporting}
-            className="h-7 text-xs bg-white text-blue-700 hover:bg-blue-50 font-semibold shadow-xs"
+            className="h-8 text-xs bg-indigo-500 hover:bg-indigo-400 text-white font-semibold border border-indigo-400/30 shadow-xs"
           >
             {isImporting ? (
               <>
@@ -192,3 +194,4 @@ export function LocalStorageMigrationBanner() {
     </div>
   )
 }
+

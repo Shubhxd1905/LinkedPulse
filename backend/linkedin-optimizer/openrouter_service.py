@@ -205,21 +205,24 @@ def build_user_prompt(profile_data: Dict[str, Any], tone: str) -> str:
     career_intent = profile_data.get("careerIntent", "current-field")
     
     exp_list = profile_data.get("experience", [])
-    if isinstance(exp_list, list):
+    exp_status = profile_data.get("experienceStatus", "present" if exp_list else "fresher")
+
+    if exp_status in ("fresher", "unavailable"):
+        formatted_exp = ""
+    elif isinstance(exp_list, list):
         formatted_exp = "\n".join([
             f"- {e.get('title', 'Role')} at {e.get('company', 'Company')} ({e.get('duration', 'Duration')}): {e.get('description', '')}"
             for e in exp_list if isinstance(e, dict)
         ])
     else:
         formatted_exp = str(exp_list)
-        
+
     skills = profile_data.get("skills", [])
     if isinstance(skills, list):
         skills_str = ", ".join([str(s) for s in skills if str(s).strip()])
     else:
         skills_str = str(skills)
 
-    exp_status = profile_data.get("experienceStatus", "present" if exp_list else "fresher")
     education = profile_data.get("education", "").strip()
     projects = profile_data.get("projects", "").strip()
     certifications = profile_data.get("certifications", [])

@@ -889,11 +889,17 @@ export function generateImprovements(
   let experienceSuggestions: string[] = []
 
   if (expStatus === 'fresher') {
-    optimizedExperience = `[Technical Projects & Practical Application]\n→ Engineered responsive web applications utilizing ${topSkills}, implementing clean component hierarchy and state management\n→ Developed RESTful APIs with automated unit tests and structured error handling\n→ Managed project lifecycle using Git version control, continuous integration, and cloud hosting\n→ Documented technical architecture and setup instructions with comprehensive README documentation`
+    const projectLine = input.projects?.trim()
+      ? `→ Highlight your practical project work (${input.projects.trim()}) with problem statement, methodology, tools (${topSkills}), and key findings`
+      : `→ Engineered hands-on technical projects utilizing ${topSkills}, applying clean architecture and structured problem solving`
+    const eduLine = input.education?.trim()
+      ? `→ Connect coursework and academic foundation (${input.education.trim()}) directly to target ${role} responsibilities`
+      : `→ Document academic coursework, capstone deliverables, and core engineering principles cleanly`
+    optimizedExperience = `[Technical Projects & Practical Application]\n${projectLine}\n${eduLine}\n→ Maintained code, notebooks, or project documentation with Git version control and clear reproducible READMEs\n→ Quantify project scope or evaluation results using real metrics (or measurable benchmarks) without overstating commercial tenure`
     experienceSuggestions = [
-      'Showcase 2-3 personal or open-source projects using STAR bullets (Situation, Task, Action, Result)',
+      'Showcase 2-3 personal, academic, or open-source projects using STAR bullets (Situation, Task, Action, Result)',
       'Include links to live project demos, GitHub repositories, or academic capstones',
-      'Highlight testing, code quality, and problem-solving techniques',
+      'Highlight testing, methodology, and problem-solving techniques rather than commercial titles',
     ]
   } else if (expStatus === 'unavailable') {
     optimizedExperience = `(Work experience details were not provided. Add your career roles or freelance projects to generate tailored STAR-format achievement bullets.)`
@@ -958,10 +964,17 @@ export function generateImprovements(
     experience: {
       name: expStatus === 'fresher' ? 'Projects & Hands-on Work' : 'Experience Descriptions',
       original:
-        input.experience.map((e) => `${e.title}: ${e.description}`).join('\n') ||
-        (expStatus === 'fresher'
-          ? 'Early Career / Fresher (No commercial roles listed)'
-          : 'No work experience provided'),
+        expStatus === 'fresher'
+          ? [
+              input.education?.trim() ? `Education: ${input.education.trim()}` : '',
+              input.projects?.trim() ? `Projects: ${input.projects.trim()}` : '',
+            ]
+              .filter(Boolean)
+              .join('\n') || 'Early Career / Fresher (No commercial roles listed)'
+          : expStatus === 'unavailable'
+          ? 'No work experience provided'
+          : input.experience.map((e) => `${e.title}: ${e.description}`).join('\n') ||
+            'No work experience provided',
       optimized: optimizedExperience,
       score: expStatus === 'fresher' ? 86 : 88,
       maxScore: 100,

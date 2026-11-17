@@ -8,6 +8,12 @@ export default {
   theme: {
     extend: {
       colors: {
+        glass: {
+          white: 'rgba(255,255,255,0.08)',
+          border: 'rgba(255,255,255,0.15)',
+          hover: 'rgba(255,255,255,0.14)',
+          strong: 'rgba(255,255,255,0.12)',
+        },
         linkedin: {
           DEFAULT: '#0a66c2',
           dark: '#004182',

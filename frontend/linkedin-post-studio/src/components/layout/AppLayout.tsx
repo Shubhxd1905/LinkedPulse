@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -15,8 +15,6 @@ import {
   PlusCircle,
   Linkedin,
   ShieldCheck,
-  AlertCircle,
-  RefreshCw,
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
@@ -29,17 +27,34 @@ export type DemoStateMode = 'normal' | 'loading' | 'empty' | 'error'
 
 interface AppLayoutProps {
   children: ReactNode
-  stateMode?: DemoStateMode
-  onStateModeChange?: (mode: DemoStateMode) => void
 }
 
-export function AppLayout({ children, stateMode = 'normal', onStateModeChange }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const { resolvedTheme, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setUserMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [userMenuOpen])
 
   const navItems = [
     {
@@ -85,36 +100,36 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen text-slate-100 flex flex-col md:flex-row">
       {/* Mobile Top App Bar */}
-      <header className="md:hidden sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+      <header className="md:hidden sticky top-0 z-40 flex h-16 items-center justify-between px-4 glass border-b border-white/10">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="rounded-lg p-2 text-white/70 hover:bg-white/10 hover:text-white"
             aria-label="Open navigation menu"
           >
             <Menu className="h-6 w-6" />
           </button>
-          <Link to="/dashboard" className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0a66c2] text-white">
+          <Link to="/dashboard" className="flex items-center gap-2 font-bold text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/80 text-white shadow-lg shadow-indigo-500/30">
               <Linkedin className="h-5 w-5 fill-current" />
             </div>
-            <span className="text-base tracking-tight">LinkOptimize</span>
+            <span className="text-base tracking-tight">LinkedPulse</span>
           </Link>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={toggleTheme}
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="rounded-lg p-2 text-white/70 hover:bg-white/10 hover:text-white"
             aria-label="Toggle theme"
           >
-            {resolvedTheme === 'dark' ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-slate-600" />}
+            {resolvedTheme === 'dark' ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-white/80" />}
           </button>
           <Link
             to="/settings"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0a66c2]/10 font-semibold text-[#0a66c2] dark:bg-[#0a66c2]/20 dark:text-blue-400"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/30 font-semibold text-white border border-indigo-400/30"
           >
             {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
           </Link>
@@ -124,7 +139,7 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
       {/* Mobile Drawer Backdrop */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm md:hidden animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden animate-fade-in"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -132,30 +147,30 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
       {/* Mobile Drawer */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-72 transform bg-white p-5 shadow-2xl transition-transform duration-300 ease-in-out md:hidden dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between',
+          'fixed inset-y-0 left-0 z-50 w-72 transform glass-lg p-5 shadow-2xl transition-transform duration-300 ease-in-out md:hidden border-r border-white/10 flex flex-col justify-between',
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <div>
-          <div className="flex items-center justify-between pb-5 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between pb-5 border-b border-white/10">
             <Link
               to="/dashboard"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 font-bold text-slate-900 dark:text-white"
+              className="flex items-center gap-2 font-bold text-white"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0a66c2] text-white shadow-md shadow-[#0a66c2]/20">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/80 text-white shadow-lg shadow-indigo-500/30">
                 <Linkedin className="h-5 w-5 fill-current" />
               </div>
               <div>
-                <span className="text-base tracking-tight font-extrabold block">LinkOptimize</span>
-                <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block -mt-1">
+                <span className="text-base tracking-tight font-extrabold block text-white">LinkedPulse</span>
+                <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-300 block -mt-1">
                   AI SaaS Platform
                 </span>
               </div>
             </Link>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" />
@@ -172,11 +187,14 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
                   key={item.path}
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
+                  data-profile-audit-trigger={item.path === '/optimize' ? 'true' : undefined}
+                  data-audit-label={item.path === '/optimize' ? 'Loading Profile Audit...' : undefined}
+                  data-audit-step={item.path === '/optimize' ? 'Loading Profile Audit workspace...' : undefined}
                   className={cn(
                     'flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all',
                     active
-                      ? 'bg-[#0a66c2] text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
+                      ? 'bg-indigo-500/80 text-white shadow-sm shadow-indigo-500/30 border border-indigo-400/30'
+                      : 'text-slate-200 hover:bg-white/10 hover:text-white border border-transparent'
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -189,7 +207,7 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
                         'rounded-full px-2 py-0.5 text-[10px] font-semibold',
                         active
                           ? 'bg-white/20 text-white'
-                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                          : 'bg-white/12 text-slate-200'
                       )}
                     >
                       {item.badge}
@@ -199,55 +217,26 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
               )
             })}
           </nav>
-
-          {/* Mobile View State Switcher */}
-          {onStateModeChange && (
-            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/60">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Simulate View State:
-              </span>
-              <div className="grid grid-cols-2 gap-1.5">
-                {(['normal', 'loading', 'empty', 'error'] as DemoStateMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => {
-                      onStateModeChange(mode)
-                      setMobileMenuOpen(false)
-                    }}
-                    className={cn(
-                      'rounded-lg px-2.5 py-1.5 text-xs font-semibold capitalize transition-all text-center',
-                      stateMode === mode
-                        ? 'bg-[#0a66c2] text-white shadow-sm'
-                        : 'bg-white text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-                    )}
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* User Card & Logout on Mobile */}
-        <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60 mb-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0a66c2] text-sm font-bold text-white">
+        <div className="pt-4 border-t border-white/15">
+          <div className="flex items-center gap-3 rounded-xl bg-white/8 border border-white/15 p-3 mb-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/60 text-sm font-bold text-white shadow-sm border border-indigo-400/30">
               {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'A'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+              <p className="truncate text-sm font-semibold text-white">
                 {user?.displayName || 'Alex Rivera'}
               </p>
-              <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                {user?.email || 'demo@linkoptimize.dev'}
+              <p className="truncate text-xs text-slate-300">
+                {user?.email || 'demo@linkedpulse.dev'}
               </p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-slate-700 dark:text-red-400 dark:hover:bg-red-950/30"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 py-2 text-sm font-medium text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors"
           >
             <LogOut className="h-4 w-4" />
             Sign Out
@@ -256,18 +245,18 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
       </aside>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 border-r border-white/10 glass-lg">
         {/* Brand Header */}
-        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex h-16 items-center justify-between px-6 border-b border-white/10">
           <Link to="/dashboard" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0a66c2] text-white shadow-md shadow-[#0a66c2]/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/80 text-white shadow-lg shadow-indigo-500/30">
               <Linkedin className="h-5 w-5 fill-current" />
             </div>
             <div>
-              <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white block">
-                LinkOptimize
+              <span className="text-base font-bold tracking-tight text-white block">
+                LinkedPulse
               </span>
-              <span className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase block -mt-1">
+              <span className="text-[10px] font-semibold tracking-wider text-slate-300 uppercase block -mt-1">
                 AI Studio
               </span>
             </div>
@@ -279,7 +268,7 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
 
         {/* Navigation Section */}
         <div className="flex-1 overflow-y-auto px-4 py-6">
-          <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-300">
             Workspace
           </div>
           <nav className="space-y-1">
@@ -290,15 +279,18 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
                 <Link
                   key={item.path}
                   to={item.path}
+                  data-profile-audit-trigger={item.path === '/optimize' ? 'true' : undefined}
+                  data-audit-label={item.path === '/optimize' ? 'Loading Profile Audit...' : undefined}
+                  data-audit-step={item.path === '/optimize' ? 'Loading Profile Audit workspace...' : undefined}
                   className={cn(
                     'group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-150',
                     active
-                      ? 'bg-[#0a66c2] text-white shadow-sm shadow-[#0a66c2]/30'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
+                      ? 'bg-indigo-500/80 text-white shadow-sm shadow-indigo-500/30 border border-indigo-400/30'
+                      : 'text-slate-200 hover:bg-white/10 hover:text-white border border-transparent'
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={cn('h-4 w-4 transition-transform group-hover:scale-110', active ? 'text-white' : 'text-slate-400 dark:text-slate-400')} />
+                    <Icon className={cn('h-4 w-4 transition-transform group-hover:scale-110', active ? 'text-white' : 'text-slate-300')} />
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
@@ -307,7 +299,7 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
                         'rounded-full px-2 py-0.5 text-[10px] font-semibold',
                         active
                           ? 'bg-white/20 text-white'
-                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                          : 'bg-white/12 text-slate-200'
                       )}
                     >
                       {item.badge}
@@ -322,71 +314,83 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
           <div className="mt-8 px-1">
             <Link
               to="/post-studio"
-              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0a66c2] to-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#0a66c2]/20 hover:opacity-95 transition-opacity"
+              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500/80 to-cyan-500/80 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 hover:from-indigo-500 hover:to-cyan-500 transition-all border border-white/10"
             >
               <PlusCircle className="h-4 w-4" />
               <span>Create New Post</span>
             </Link>
           </div>
 
-          {/* Pro Status Widget */}
-          <div className="mt-8 rounded-xl border border-slate-200/80 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 p-4 dark:border-slate-800 dark:from-slate-800/60 dark:to-slate-800/20">
-            <div className="flex items-center justify-between mb-2">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-[#0a66c2] dark:text-blue-400">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                AI Optimization Quota
+          {/* AI Quota Widget */}
+          <div className="mt-6 rounded-xl border border-white/15 bg-white/8 p-4">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-indigo-200 min-w-0 truncate">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">AI Quota</span>
               </span>
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">42 / 50</span>
+              <span className="text-xs font-bold text-white whitespace-nowrap shrink-0">
+                42 / 50
+              </span>
             </div>
-            <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-              <div className="h-full rounded-full bg-[#0a66c2]" style={{ width: '84%' }} />
+            <div className="h-1.5 w-full rounded-full bg-white/15 overflow-hidden">
+              <div className="h-full rounded-full bg-gradient-to-r from-indigo-400 to-cyan-400" style={{ width: '84%' }} />
             </div>
-            <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-300">
               Renews on 1st of next month • Unlimited draft storage
             </p>
           </div>
         </div>
 
         {/* User Footer Profile */}
-        <div className="border-t border-slate-200 p-4 dark:border-slate-800">
-          <div className="relative">
+        <div className="border-t border-white/15 p-4">
+          <div className="relative" ref={userMenuRef}>
             <button
+              type="button"
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex w-full items-center justify-between rounded-xl p-2 text-left hover:bg-slate-100 transition-colors dark:hover:bg-slate-800"
+              aria-expanded={userMenuOpen}
+              aria-haspopup="menu"
+              className="flex w-full items-center justify-between rounded-xl p-2 text-left hover:bg-white/10 transition-colors"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0a66c2] text-sm font-bold text-white shadow-sm">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/60 text-sm font-bold text-white shadow-sm border border-indigo-400/30">
                   {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'A'}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-bold text-slate-900 dark:text-white">
+                  <p className="truncate text-xs font-bold text-white">
                     {user?.displayName || 'Alex Rivera'}
                   </p>
-                  <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
-                    {user?.email || 'demo@linkoptimize.dev'}
+                  <p className="truncate text-[11px] text-slate-300">
+                    {user?.email || 'demo@linkedpulse.dev'}
                   </p>
                 </div>
               </div>
-              <ChevronRight className={cn('h-4 w-4 text-slate-400 transition-transform', userMenuOpen && 'rotate-90')} />
+              <ChevronRight className={cn('h-4 w-4 shrink-0 text-slate-300 transition-transform', userMenuOpen && '-rotate-90')} />
             </button>
 
             {/* User Dropdown */}
             {userMenuOpen && (
-              <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-800 animate-slide-up">
+              <div
+                role="menu"
+                className="absolute bottom-full left-0 z-50 mb-2 w-full rounded-xl glass-overlay p-1.5 animate-slide-up"
+              >
                 <Link
                   to="/settings"
+                  role="menuitem"
                   onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white"
                 >
-                  <Settings className="h-3.5 w-3.5" />
+                  <Settings className="h-3.5 w-3.5 text-indigo-300" />
                   Account Settings
                 </Link>
+                <div className="my-1 h-px bg-white/10" />
                 <button
+                  type="button"
+                  role="menuitem"
                   onClick={() => {
                     setUserMenuOpen(false)
                     handleLogout()
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/15 hover:text-red-300"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   Sign Out
@@ -400,51 +404,29 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
       {/* Main Content Area */}
       <div className="flex-1 md:pl-64 flex flex-col min-w-0">
         {/* Desktop Top Navigation Bar */}
-        <header className="hidden md:flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-8 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80 sticky top-0 z-20">
+        <header className="hidden md:flex h-16 items-center justify-between border-b border-white/15 glass px-8 sticky top-0 z-20">
           <div className="flex items-center gap-3">
-            <span className="text-xs uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
+            <span className="text-xs uppercase font-bold tracking-wider text-slate-300">
               Overview
             </span>
-            <span className="text-slate-300 dark:text-slate-700">/</span>
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+            <span className="text-slate-400">/</span>
+            <span className="text-sm font-semibold text-white">
               {navItems.find((n) => isActive(n.path))?.label || 'Overview'}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Interactive Demo State Controller (allows instant inspection of Loading, Empty, and Error states) */}
-            {onStateModeChange && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">View State:</span>
-                {(['normal', 'loading', 'empty', 'error'] as DemoStateMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => onStateModeChange(mode)}
-                    className={cn(
-                      'rounded px-2.5 py-1 text-xs font-semibold capitalize transition-all',
-                      stateMode === mode
-                        ? 'bg-[#0a66c2] text-white shadow-sm ring-1 ring-[#0a66c2]'
-                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700'
-                    )}
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
-            )}
-
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-slate-200 transition-colors hover:bg-white/15 hover:text-white"
               title={`Switch to ${resolvedTheme === 'dark' ? 'Light' : 'Dark'} mode`}
               aria-label="Toggle theme"
             >
               {resolvedTheme === 'dark' ? (
-                <Sun className="h-4 w-4 text-amber-400" />
+                <Sun className="h-4 w-4 text-amber-300" />
               ) : (
-                <Moon className="h-4 w-4 text-slate-600" />
+                <Moon className="h-4 w-4 text-slate-200" />
               )}
             </button>
 
@@ -455,32 +437,6 @@ export function AppLayout({ children, stateMode = 'normal', onStateModeChange }:
             </Link>
           </div>
         </header>
-
-        {/* Global Error Banner if stateMode === 'error' */}
-        {stateMode === 'error' && (
-          <div className="mx-6 mt-6 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300 animate-slide-up">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
-              <div>
-                <p className="text-sm font-bold">Simulated Service Warning / Connection Error</p>
-                <p className="text-xs text-red-700 dark:text-red-400">
-                  This demonstrates how error states and recovery flows are cleanly handled across the UI.
-                </p>
-              </div>
-            </div>
-            {onStateModeChange && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-white hover:bg-red-50 text-red-700 border-red-300 dark:bg-slate-900 dark:text-red-400 dark:border-red-800"
-                onClick={() => onStateModeChange('normal')}
-                leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
-              >
-                Dismiss & Retry
-              </Button>
-            )}
-          </div>
-        )}
 
         {/* Page Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">

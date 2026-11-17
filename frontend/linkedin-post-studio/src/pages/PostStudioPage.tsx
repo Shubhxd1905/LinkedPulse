@@ -389,13 +389,13 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
     return (
       <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
         <div className="text-center py-8">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[#0a66c2] dark:bg-slate-800 dark:text-blue-400 mb-4 animate-bounce">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 mb-4 animate-bounce">
             <Sparkles className="h-8 w-8" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-xl font-bold text-white">
             Transforming Image into LinkedIn Post...
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-200 mt-1">
             {generationStep || 'Scanning visual themes, chart metrics, and optimizing narrative tone.'}
           </p>
         </div>
@@ -412,15 +412,15 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
   if (stateMode === 'error') {
     return (
       <div className="py-12 animate-fade-in max-w-xl mx-auto">
-        <Card className="border-red-200 dark:border-red-900/50">
+        <Card className="border-red-400/30">
           <CardContent className="py-12 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 mb-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20 border border-red-400/30 text-red-300 mb-4">
               <AlertCircle className="h-7 w-7" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-xl font-bold text-white mb-2">
               Failed to generate post from image
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-sm mx-auto mb-6">
+            <p className="text-sm text-slate-200 max-w-sm mx-auto mb-6">
               The image processing model or text synthesizer returned an error.
             </p>
             {onStateModeChange && (
@@ -439,10 +439,10 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
     return (
       <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             Image-to-LinkedIn Post Generator
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-200 mt-1">
             Upload any screenshot, architecture diagram, infographic, or photo to generate an engaging LinkedIn post.
           </p>
         </div>
@@ -450,7 +450,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
         <Card>
           <CardContent className="py-16 text-center">
             <EmptyState
-              icon={<ImageIcon className="h-14 w-14 text-slate-300 dark:text-slate-600" />}
+              icon={<ImageIcon className="h-14 w-14 text-slate-300" />}
               title="No Post Generated Yet"
               description="Drop an image from your computer or use our sample metrics screenshot to generate high-performing LinkedIn copy in seconds."
               action={{
@@ -477,14 +477,14 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
               Image-to-LinkedIn Post Generator
             </h1>
             <Badge variant="linkedin" size="sm">
               Visual AI
             </Badge>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-200 mt-1">
             Transform screenshots, charts, project wins, and event photos into viral LinkedIn narratives.
           </p>
         </div>
@@ -534,13 +534,13 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
             </CardHeader>
             <CardContent className="pt-2">
               {imagePreview ? (
-                <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group">
+                <div className="relative rounded-xl overflow-hidden border border-white/20 group">
                   <img
                     src={imagePreview}
                     alt="Upload Preview"
                     className="w-full h-48 object-cover transition-transform group-hover:scale-102"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <Button
                       size="sm"
                       variant="secondary"
@@ -549,9 +549,9 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
                       Replace Image
                     </Button>
                   </div>
-                  <div className="p-2.5 bg-white dark:bg-slate-800 text-[11px] text-slate-500 flex items-center justify-between">
+                  <div className="p-2.5 bg-slate-950/75 text-[11px] text-slate-200 flex items-center justify-between border-t border-white/15">
                     <span className="truncate max-w-[200px]">{imageFileName || 'Uploaded image'}</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                    <span className="text-emerald-300 font-semibold flex items-center gap-1">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Ready for Vision AI
                     </span>
                   </div>
@@ -559,14 +559,14 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-[#0a66c2] transition-colors cursor-pointer bg-slate-50/50 dark:bg-slate-900/50"
+                  className="border-2 border-dashed border-white/20 rounded-xl p-8 text-center hover:border-indigo-400/70 transition-colors cursor-pointer bg-slate-950/35"
                 >
-                  <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  <Upload className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-white">
                     Upload image or screenshot
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">PNG, JPG, WebP up to 5MB</p>
-                  <span className="mt-4 inline-block px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50">
+                  <p className="text-xs text-slate-300 mt-1">PNG, JPG, WebP up to 5MB</p>
+                  <span className="mt-4 inline-block px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-xs font-semibold text-white hover:bg-white/20 transition-colors">
                     Select File
                   </span>
                 </div>
@@ -589,7 +589,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
             <CardContent className="pt-2 space-y-4">
               {/* Tone Selection */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-xs font-bold text-slate-200 mb-2">
                   Tone of Voice
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -599,15 +599,15 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
                       onClick={() => setTone(t.value)}
                       className={`flex flex-col items-start p-2.5 rounded-xl border text-left transition-all ${
                         tone === t.value
-                          ? 'border-[#0a66c2] bg-blue-50/60 dark:bg-blue-950/40 dark:border-[#0a66c2]'
-                          : 'border-slate-200 hover:border-slate-300 dark:border-slate-700'
+                          ? 'border-indigo-400/70 bg-indigo-500/20'
+                          : 'border-white/15 bg-white/[0.04] hover:border-white/30'
                       }`}
                     >
                       <span className="text-sm">{t.emoji}</span>
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
+                      <span className="text-xs font-bold text-white mt-1">
                         {t.label}
                       </span>
-                      <span className="text-[10px] text-slate-400 line-clamp-1">{t.description}</span>
+                      <span className="text-[10px] text-slate-300 line-clamp-1">{t.description}</span>
                     </button>
                   ))}
                 </div>
@@ -615,7 +615,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
 
               {/* Length Selection */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-xs font-bold text-slate-200 mb-2">
                   Post Length
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -629,8 +629,8 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
                       onClick={() => setLength(l.id as PostLength)}
                       className={`py-2 px-2 rounded-lg text-xs font-semibold text-center transition-all ${
                         length === l.id
-                          ? 'bg-[#0a66c2] text-white shadow-sm'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                          ? 'bg-indigo-500 text-white shadow-sm'
+                          : 'bg-white/10 text-slate-200 hover:bg-white/15 hover:text-white border border-white/10'
                       }`}
                     >
                       {l.label}
@@ -641,7 +641,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
 
               {/* Context Note */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold text-slate-200 mb-1.5">
                   Additional Context / Angle (Optional)
                 </label>
                 <Textarea
@@ -669,18 +669,18 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
         <div className="lg:col-span-7 space-y-5">
           {/* Visual Comprehension & AI Diagnostics Banner */}
           {visualSummary && (
-            <div className="rounded-xl border border-blue-200/80 bg-blue-50/50 dark:border-blue-900/40 dark:bg-slate-800/60 p-3.5">
+            <div className="rounded-xl border border-indigo-400/30 bg-indigo-500/15 p-3.5">
               <div className="flex items-start gap-2.5">
-                <Eye className="h-4 w-4 text-[#0a66c2] dark:text-blue-400 mt-0.5 shrink-0" />
+                <Eye className="h-4 w-4 text-indigo-300 mt-0.5 shrink-0" />
                 <div className="text-xs">
-                  <p className="font-bold text-slate-800 dark:text-slate-200">
+                  <p className="font-bold text-white">
                     Image Comprehension Summary:
                   </p>
-                  <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                  <p className="text-slate-200 mt-0.5 leading-relaxed">
                     {visualSummary}
                   </p>
                   {aiMetadata?.fallbackReason && (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                    <p className="text-[11px] text-amber-300 mt-1 font-medium">
                       ⚠️ Notice: {aiMetadata.fallbackReason}
                     </p>
                   )}
@@ -692,7 +692,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
           {/* Live Preview Header Toolbar */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
                 Live LinkedIn Feed Mockup
               </span>
               <Badge variant="linkedin" size="sm">
@@ -704,21 +704,21 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => insertFormatting('bullet')}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold"
+                className="p-1.5 rounded-lg border border-white/20 bg-white/10 text-xs text-slate-100 hover:bg-white/20 font-bold transition-colors"
                 title="Insert Bullet Point"
               >
                 →
               </button>
               <button
                 onClick={() => insertFormatting('bold')}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-serif font-bold"
+                className="p-1.5 rounded-lg border border-white/20 bg-white/10 text-xs text-slate-100 hover:bg-white/20 font-serif font-bold transition-colors"
                 title="Insert Bold Unicode"
               >
                 𝗕
               </button>
               <button
                 onClick={() => insertFormatting('hashtag')}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="p-1.5 rounded-lg border border-white/20 bg-white/10 text-xs text-slate-100 hover:bg-white/20 transition-colors"
                 title="Insert Hashtags"
               >
                 #
@@ -727,31 +727,31 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
           </div>
 
           {/* Authentic LinkedIn Feed Post Card */}
-          <div className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-md overflow-hidden">
+          <div className="rounded-xl glass-lg border border-white/20 shadow-md overflow-hidden">
             {/* Post Header */}
             <div className="p-4 flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0a66c2] text-base font-bold text-white shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500 text-base font-bold text-white shadow-sm">
                   {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'A'}
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-bold text-slate-900 dark:text-white">
+                    <span className="text-sm font-bold text-white">
                       {user?.displayName || 'Alex Rivera'}
                     </span>
-                    <span className="text-xs text-slate-400">• 1st</span>
+                    <span className="text-xs text-slate-300">• 1st</span>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                  <p className="text-[11px] text-slate-200 line-clamp-1">
                     Senior Full-Stack Engineer | Building Scalable Web Systems
                   </p>
-                  <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                  <p className="text-[11px] text-slate-300 flex items-center gap-1 mt-0.5">
                     <span>Just now</span>
                     <span>•</span>
                     <Globe className="h-3 w-3" />
                   </p>
                 </div>
               </div>
-              <button className="text-slate-400 hover:text-slate-600">
+              <button className="text-slate-300 hover:text-white">
                 <MoreHorizontal className="h-5 w-5" />
               </button>
             </div>
@@ -762,16 +762,16 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
                 value={generatedContent}
                 onChange={(e) => setGeneratedContent(e.target.value)}
                 rows={isExpanded ? 12 : 7}
-                className="border-none focus:ring-0 p-0 text-[13px] leading-relaxed text-slate-900 dark:text-slate-100 bg-transparent resize-none font-sans"
+                className="border-white/10 focus:ring-indigo-400/40 p-3 text-[13px] leading-relaxed text-slate-100 bg-slate-950/35 resize-y font-sans"
               />
-              <div className="flex items-center justify-between mt-1">
+              <div className="flex items-center justify-between mt-1.5">
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className="text-xs font-semibold text-[#0a66c2] hover:underline"
+                  className="text-xs font-semibold text-indigo-300 hover:underline"
                 >
                   {isExpanded ? 'Show less' : '...see more'}
                 </button>
-                <span className="text-[10px] text-slate-400 font-medium">
+                <span className="text-[10px] text-slate-300 font-medium">
                   {wordCount} words • {charCount} chars
                 </span>
               </div>
@@ -779,7 +779,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
 
             {/* Post Image Preview */}
             {imagePreview && (
-              <div className="border-t border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+              <div className="border-t border-b border-white/15 bg-slate-950/55">
                 <img
                   src={imagePreview}
                   alt="Post Attachment"
@@ -789,7 +789,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
             )}
 
             {/* Post Engagement Counts */}
-            <div className="px-4 py-2 flex items-center justify-between text-xs text-slate-400 border-b border-slate-100 dark:border-slate-800">
+            <div className="px-4 py-2 flex items-center justify-between text-xs text-slate-300 border-b border-white/15">
               <div className="flex items-center gap-1.5">
                 <span className="flex -space-x-1">
                   <span className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center text-[9px] text-white">👍</span>
@@ -805,20 +805,20 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
             </div>
 
             {/* Post Action Buttons */}
-            <div className="px-2 py-1.5 flex items-center justify-around text-slate-600 dark:text-slate-300">
-              <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors">
+            <div className="px-2 py-1.5 flex items-center justify-around text-slate-200">
+              <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 text-xs font-semibold transition-colors">
                 <ThumbsUp className="h-4 w-4" />
                 <span>Like</span>
               </button>
-              <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors">
+              <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 text-xs font-semibold transition-colors">
                 <MessageSquare className="h-4 w-4" />
                 <span>Comment</span>
               </button>
-              <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors">
+              <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 text-xs font-semibold transition-colors">
                 <Repeat2 className="h-4 w-4" />
                 <span>Repost</span>
               </button>
-              <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors">
+              <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 text-xs font-semibold transition-colors">
                 <Send className="h-4 w-4" />
                 <span>Send</span>
               </button>
@@ -876,10 +876,10 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
           </div>
 
           {/* Alternative Opening Hooks Card */}
-          <Card className="shadow-sm border-slate-200 dark:border-slate-800">
+          <Card className="shadow-sm border-white/15">
             <CardHeader className="pb-2.5">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Lightbulb className="h-4 w-4 text-amber-500" />
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                <Lightbulb className="h-4 w-4 text-amber-400" />
                 <span>
                   {alternativeHooks.length > 0
                     ? `${alternativeHooks.length} Alternative Opening Hook${alternativeHooks.length > 1 ? 's' : ''} (Click to apply)`
@@ -892,25 +892,25 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
                 alternativeHooks.map((h, idx) => (
                   <div
                     key={idx}
-                    className="group p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/60 dark:bg-slate-800/40 hover:border-[#0a66c2] hover:bg-blue-50/40 dark:hover:bg-slate-800 transition-all flex items-center justify-between gap-3"
+                    className="group p-2.5 rounded-xl border border-white/15 bg-white/[0.06] hover:border-indigo-400/50 hover:bg-indigo-500/15 transition-all flex items-center justify-between gap-3"
                   >
-                    <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
+                    <p className="text-xs text-slate-100 font-medium leading-relaxed">
                       {h}
                     </p>
                     <button
                       onClick={() => handleSelectHook(h)}
-                      className="shrink-0 text-[11px] font-semibold text-[#0a66c2] dark:text-blue-400 group-hover:underline px-2.5 py-1 rounded-md border border-[#0a66c2]/30 bg-white dark:bg-slate-900 shadow-2xs transition-colors hover:bg-blue-50"
+                      className="shrink-0 text-[11px] font-semibold text-indigo-200 group-hover:text-white px-2.5 py-1 rounded-md border border-indigo-400/35 bg-indigo-500/20 shadow-2xs transition-colors hover:bg-indigo-500/40"
                     >
                       Use Hook
                     </button>
                   </div>
                 ))
               ) : (
-                <div className="py-4 px-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-center bg-slate-50/40 dark:bg-slate-900/30">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="py-4 px-3 rounded-xl border border-dashed border-white/20 text-center bg-white/[0.04]">
+                  <p className="text-xs text-slate-200">
                     No alternative hooks were saved with this draft.
                   </p>
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                  <p className="text-[11px] text-slate-300 mt-0.5">
                     Click "Regenerate" to create fresh hooks with Vision AI.
                   </p>
                 </div>
@@ -921,7 +921,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
           {/* Relevant Hashtags */}
           {hashtags && hashtags.length > 0 && (
             <div className="flex items-center flex-wrap gap-1.5 pt-1">
-              <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 mr-1">
+              <span className="text-[11px] font-bold text-slate-200 flex items-center gap-1 mr-1">
                 <Hash className="h-3.5 w-3.5" /> Hashtags:
               </span>
               {hashtags.map((tag) => (
@@ -934,7 +934,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
                       success('Hashtag Added', `Appended ${tagStr} to post.`)
                     }
                   }}
-                  className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-slate-800 text-[#0a66c2] dark:text-blue-400 border border-blue-200/60 dark:border-slate-700 text-xs font-semibold hover:bg-blue-100 transition-colors"
+                  className="px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-200 border border-sky-400/30 text-xs font-semibold hover:bg-sky-500/30 transition-colors"
                   title="Click to append hashtag"
                 >
                   #{tag.replace(/^#/, '')}
@@ -954,7 +954,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
       >
         <div className="space-y-4 pt-2">
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+            <label className="block text-xs font-bold text-slate-200 mb-1.5">
               Target Publication Date & Time
             </label>
             <Input
@@ -964,8 +964,8 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
             />
           </div>
 
-          <div className="rounded-xl bg-blue-50/70 dark:bg-slate-800/60 p-3.5 border border-blue-100 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300">
-            <p className="font-semibold text-[#0a66c2] dark:text-blue-400 mb-1">
+          <div className="rounded-xl bg-indigo-500/15 p-3.5 border border-indigo-400/30 text-xs text-slate-200">
+            <p className="font-semibold text-indigo-200 mb-1">
               ✨ Recommended Algorithm Window:
             </p>
             <p>
@@ -973,7 +973,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
             </p>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/15">
             <Button variant="outline" size="sm" onClick={() => setIsScheduleModalOpen(false)}>
               Cancel
             </Button>
@@ -993,48 +993,48 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
       >
         <div className="space-y-4 pt-2">
           {/* Target Account Info */}
-          <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+          <div className="flex items-center gap-3 p-3 rounded-xl border border-white/15 bg-white/[0.06]">
             {linkedInStatus?.memberPicture ? (
               <img
                 src={linkedInStatus.memberPicture}
                 alt={linkedInStatus.memberName}
-                className="h-10 w-10 rounded-xl object-cover border border-slate-300 dark:border-slate-600"
+                className="h-10 w-10 rounded-xl object-cover border border-white/25"
               />
             ) : (
-              <div className="h-10 w-10 rounded-xl bg-[#0a66c2] text-white flex items-center justify-center font-bold text-sm">
+              <div className="h-10 w-10 rounded-xl bg-sky-500 text-white flex items-center justify-center font-bold text-sm">
                 {linkedInStatus?.memberName?.charAt(0) || 'L'}
               </div>
             )}
             <div className="text-xs">
-              <p className="font-bold text-slate-900 dark:text-white">
+              <p className="font-bold text-white">
                 Publishing to: {linkedInStatus?.memberName}
               </p>
-              <p className="text-slate-500 dark:text-slate-400">
-                Visibility: Public Feed Post • <code className="text-[#0a66c2]">w_member_social</code>
+              <p className="text-slate-200">
+                Visibility: Public Feed Post • <code className="text-sky-300">w_member_social</code>
               </p>
             </div>
           </div>
 
           {/* Post Content Excerpt */}
           <div className="space-y-1">
-            <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
+            <span className="text-[11px] font-bold uppercase text-slate-300 tracking-wider">
               Post Content Excerpt
             </span>
-            <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 max-h-36 overflow-y-auto text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+            <div className="p-3 rounded-lg border border-white/15 bg-slate-950/60 max-h-36 overflow-y-auto text-xs text-slate-100 whitespace-pre-wrap leading-relaxed">
               {generatedContent}
             </div>
           </div>
 
           {/* Image Attachment Toggle */}
           {imagePreview && (
-            <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 text-xs">
+            <div className="flex items-center justify-between p-3 rounded-xl border border-white/15 bg-white/[0.06] text-xs">
               <div className="flex items-center gap-2">
-                <ImageIcon className="h-4 w-4 text-[#0a66c2]" />
+                <ImageIcon className="h-4 w-4 text-sky-300" />
                 <div>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">
+                  <p className="font-semibold text-white">
                     Include Attached Image
                   </p>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-300">
                     Uploads binary image through LinkedIn Images API
                   </p>
                 </div>
@@ -1043,21 +1043,21 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
                 type="checkbox"
                 checked={includeImageInPost}
                 onChange={(e) => setIncludeImageInPost(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-[#0a66c2] focus:ring-[#0a66c2]"
+                className="h-4 w-4 rounded border-white/30 text-indigo-500 focus:ring-indigo-400"
               />
             </div>
           )}
 
           {/* Error Message if publish failed */}
           {publishError && (
-            <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 text-xs flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-xl border border-rose-400/35 bg-rose-500/20 text-rose-100 text-xs flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-300" />
               <p className="leading-relaxed">{publishError}</p>
             </div>
           )}
 
           {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/15">
             <Button
               variant="outline"
               size="sm"
@@ -1087,19 +1087,19 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
         description="Connect your LinkedIn account to publish posts directly from Post Studio."
       >
         <div className="space-y-4 pt-2 text-center py-2">
-          <div className="h-14 w-14 rounded-2xl bg-blue-50 text-[#0a66c2] dark:bg-slate-800 dark:text-blue-400 mx-auto flex items-center justify-center">
+          <div className="h-14 w-14 rounded-2xl bg-sky-500/20 border border-sky-400/30 text-sky-300 mx-auto flex items-center justify-center">
             <Linkedin className="h-7 w-7" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+            <h4 className="text-sm font-bold text-white">
               No Active LinkedIn Authorization Found
             </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
+            <p className="text-xs text-slate-200 mt-1 max-w-sm mx-auto">
               To publish posts live, authenticate with LinkedIn via OAuth 2.0 in the Settings page. Your tokens will be stored securely on the server.
             </p>
           </div>
 
-          <div className="flex items-center justify-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-center gap-2 pt-2 border-t border-white/15">
             <Button variant="outline" size="sm" onClick={() => setIsNotConnectedModalOpen(false)}>
               Cancel
             </Button>
@@ -1125,24 +1125,24 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
         title="Post Published to LinkedIn!"
       >
         <div className="space-y-4 pt-2 text-center py-2">
-          <div className="h-14 w-14 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 mx-auto flex items-center justify-center">
+          <div className="h-14 w-14 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 mx-auto flex items-center justify-center">
             <CheckCircle2 className="h-8 w-8" />
           </div>
           <div>
-            <h4 className="text-base font-bold text-slate-900 dark:text-white">
+            <h4 className="text-base font-bold text-white">
               Your Update is Live on LinkedIn
             </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-slate-200 mt-1">
               Confirmed through official LinkedIn REST API response.
             </p>
             {publishSuccessData?.postUrn && (
-              <p className="text-[11px] font-mono text-slate-400 mt-1">
+              <p className="text-[11px] font-mono text-slate-300 mt-1">
                 Post URN: {publishSuccessData.postUrn}
               </p>
             )}
           </div>
 
-          <div className="flex items-center justify-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-center gap-2 pt-2 border-t border-white/15">
             <Button variant="outline" size="sm" onClick={() => setPublishSuccessData(null)}>
               Done
             </Button>
@@ -1163,3 +1163,4 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
     </div>
   )
 }
+

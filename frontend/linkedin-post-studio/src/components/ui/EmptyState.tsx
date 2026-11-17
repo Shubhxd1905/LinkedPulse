@@ -16,9 +16,9 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon = 'inbox', title, description, action, className }: EmptyStateProps) {
   const icons: Record<'inbox' | 'search' | 'file', ReactNode> = {
-    inbox: <Inbox className="h-12 w-12 text-slate-300 dark:text-slate-600" />,
-    search: <Search className="h-12 w-12 text-slate-300 dark:text-slate-600" />,
-    file: <FileX className="h-12 w-12 text-slate-300 dark:text-slate-600" />,
+    inbox: <Inbox className="h-12 w-12 text-slate-400" />,
+    search: <Search className="h-12 w-12 text-slate-400" />,
+    file: <FileX className="h-12 w-12 text-slate-400" />,
   }
 
   const iconElement =
@@ -29,9 +29,9 @@ export function EmptyState({ icon = 'inbox', title, description, action, classNa
   return (
     <div className={cn('flex flex-col items-center justify-center py-16 px-6 text-center', className)}>
       <div className="mb-4">{iconElement}</div>
-      <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-1">{title}</h3>
+      <h3 className="text-lg font-semibold text-white mb-1">{title}</h3>
       {description && (
-        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mb-6">{description}</p>
+        <p className="text-sm text-slate-300 max-w-sm mb-6">{description}</p>
       )}
       {action && (
         <Button variant="primary" onClick={action.onClick}>
@@ -41,3 +41,4 @@ export function EmptyState({ icon = 'inbox', title, description, action, classNa
     </div>
   )
 }
+
