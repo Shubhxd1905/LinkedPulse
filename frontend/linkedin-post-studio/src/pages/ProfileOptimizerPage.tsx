@@ -215,6 +215,7 @@ export function ProfileOptimizerPage({
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
   const [engineMode, setEngineModeState] = useState<EngineMode>(getEnginePreference())
   const [serverAiStatus, setServerAiStatus] = useState<ServerAiStatus | null>(null)
+  const [isCheckingServer, setIsCheckingServer] = useState(false)
 
   // URL retrieval modal / transparency explanation
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false)
@@ -3055,10 +3056,24 @@ export function ProfileOptimizerPage({
             <Button
               variant="outline"
               size="sm"
+              isLoading={isCheckingServer}
               onClick={async () => {
-                const status = await checkServerAiStatus()
-                setServerAiStatus(status)
-                info('Status Refreshed', status.status === 'ready' ? 'Backend OpenRouter is ready.' : 'Checked backend status.')
+                setIsCheckingServer(true)
+                try {
+                  const status = await checkServerAiStatus()
+                  setServerAiStatus(status)
+                  if (status.status === 'ready') {
+                    success('Status Refreshed', 'Backend OpenRouter is ready.')
+                  } else if (status.status === 'unconfigured') {
+                    warning('Status Refreshed', 'Server online, but OPENROUTER_API_KEY is not set in .env.')
+                  } else {
+                    info('Status Refreshed', 'Backend offline; local heuristic analyzer will be used.')
+                  }
+                } catch {
+                  warning('Server Check', 'Unable to reach backend server.')
+                } finally {
+                  setIsCheckingServer(false)
+                }
               }}
             >
               <RefreshCw className="h-3 w-3 mr-1" />

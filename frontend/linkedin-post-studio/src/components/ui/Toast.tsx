@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useToast } from '@/hooks/useToast'
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -5,7 +6,7 @@ import { cn } from '@/lib/utils'
 export function ToastContainer() {
   const { toasts, removeToast } = useToast()
 
-  if (toasts.length === 0) return null
+  if (toasts.length === 0 || typeof document === 'undefined') return null
 
   const icons = {
     success: <CheckCircle className="h-5 w-5 text-emerald-500" />,
@@ -21,16 +22,16 @@ export function ToastContainer() {
     info: 'border-l-blue-500',
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 max-w-sm w-full pointer-events-none"
+      className="fixed bottom-4 right-4 z-[120] flex flex-col gap-2 max-w-sm w-full pointer-events-none"
       aria-live="polite"
     >
       {toasts.map((toast) => (
         <div
           key={toast.id}
           className={cn(
-            'glass-overlay rounded-xl p-4 flex items-start gap-3 animate-slide-up pointer-events-auto',
+            'glass-overlay rounded-xl p-4 flex items-start gap-3 animate-slide-up pointer-events-auto shadow-2xl',
             'border-l-4',
             borderColors[toast.type]
           )}
@@ -52,7 +53,8 @@ export function ToastContainer() {
           </button>
         </div>
       ))}
-    </div>
+    </div>,
+    document.body
   )
 }
 
