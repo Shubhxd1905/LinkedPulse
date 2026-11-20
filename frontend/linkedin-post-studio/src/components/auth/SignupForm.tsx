@@ -102,6 +102,7 @@ export function SignupForm() {
         email: email.trim(),
         options: {
           shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: name.trim(),
             name: name.trim(),

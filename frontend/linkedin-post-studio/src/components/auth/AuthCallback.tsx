@@ -17,18 +17,11 @@ export function AuthCallback() {
   const handled = useRef(false);
 
   useEffect(() => {
-    if (handled.current) return;
-    handled.current = true;
-
-    async function handleCallback() {
+    async function handleSession(session: any) {
+      if (handled.current) return;
+      handled.current = true;
       try {
-        // Supabase auto-parses the hash and sets the session
-        const { data, error } = await supabase.auth.getSession();
-        if (error || !data.session) {
-          throw new Error(error?.message || 'No session found after OAuth redirect.');
-        }
-
-        const { access_token, user } = data.session;
+        const { access_token, user } = session;
         const email = user?.email || '';
         const name =
           user?.user_metadata?.full_name ||
@@ -37,23 +30,39 @@ export function AuthCallback() {
 
         await loginWithSupabaseToken(access_token, email, name);
         toast({
-          title: 'Signed in with Google',
+          title: 'Signed in successfully!',
           description: `Welcome, ${name}!`,
           variant: 'success',
         });
         navigate('/dashboard', { replace: true });
       } catch (err) {
         toast({
-          title: 'Google sign-in failed',
+          title: 'Authentication failed',
           description:
-            err instanceof Error ? err.message : 'Authentication failed. Please try again.',
+            err instanceof Error ? err.message : 'Unable to complete sign in. Please try again.',
           variant: 'error',
         });
         navigate('/login', { replace: true });
       }
     }
 
-    handleCallback();
+    // 1. Check existing or immediately resolved session
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session) {
+        handleSession(data.session);
+      }
+    });
+
+    // 2. Also listen for auth state changes from hash or URL code exchange
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        handleSession(session);
+      }
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, [loginWithSupabaseToken, navigate, toast]);
 
   return (

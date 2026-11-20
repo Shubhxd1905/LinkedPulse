@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { User } from '@/types'
 import { apiLogin, apiRegister, apiLogout, apiGetCurrentUser, apiSupabaseTokenExchange } from '@/lib/api'
+import { supabase } from '@/lib/supabase'
 
 interface AuthContextType {
   user: User | null
@@ -64,8 +65,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (mounted) setIsLoading(false)
       })
 
+    // Listen to Supabase auth state change (e.g. from magic links or token redirects)
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return
+      if (session?.access_token && session.user?.email) {
+        try {
+          const email = session.user.email
+          const name =
+            session.user.user_metadata?.full_name ||
+            session.user.user_metadata?.name ||
+            email.split('@')[0]
+          const res = await apiSupabaseTokenExchange(session.access_token, email, name)
+          if (mounted && res?.user) {
+            setUser({
+              id: res.user.id,
+              email: res.user.email,
+              displayName: res.user.name,
+              avatarUrl: null,
+              linkedinConnected: false,
+              createdAt: res.user.createdAt,
+            })
+          }
+        } catch {
+          // ignore error if exchange fails or token already used
+        }
+      }
+    })
+
     return () => {
       mounted = false
+      authListener?.subscription?.unsubscribe()
     }
   }, [])
 
