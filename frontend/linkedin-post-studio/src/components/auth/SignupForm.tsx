@@ -114,7 +114,7 @@ export function SignupForm() {
       setCooldown(60);
       toast({
         title: 'Verification code sent!',
-        description: `We emailed a 6-digit code to ${email.trim()}.`,
+        description: `We emailed a verification code to ${email.trim()}.`,
         variant: 'success',
       });
     } catch (err) {
@@ -130,8 +130,8 @@ export function SignupForm() {
 
   // ── Step 2: Verify OTP ──────────────────────────────────────────────────────
   const handleVerifyOtp = async () => {
-    if (otp.trim().length !== 6) {
-      toast({ title: 'Enter 6-digit code', description: 'Please enter the full code from your email.', variant: 'warning' });
+    if (otp.trim().length < 6 || otp.trim().length > 10) {
+      toast({ title: 'Enter verification code', description: 'Please enter the full verification code from your email.', variant: 'warning' });
       return;
     }
     setIsLoading(true);
@@ -313,7 +313,7 @@ export function SignupForm() {
           <div className="space-y-5" aria-label="OTP verification form">
             <div className="rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-100">
               <p>
-                We sent a 6-digit verification code to{' '}
+                We sent a verification code to{' '}
                 <span className="font-semibold text-white">{email}</span>.
                 Check your inbox (and spam folder).
               </p>
@@ -328,13 +328,13 @@ export function SignupForm() {
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                maxLength={6}
-                placeholder="123456"
-                className="text-center tracking-[0.4em] text-lg font-semibold"
+                maxLength={10}
+                placeholder="Enter code"
+                className="text-center tracking-[0.25em] text-lg font-semibold"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleVerifyOtp(); }}
-                aria-label="6-digit verification code"
+                aria-label="Verification code"
                 autoComplete="one-time-code"
                 autoFocus
               />
@@ -344,7 +344,7 @@ export function SignupForm() {
               type="button"
               className="w-full"
               onClick={handleVerifyOtp}
-              disabled={isLoading || otp.length !== 6}
+              disabled={isLoading || otp.trim().length < 6}
               aria-label={isLoading ? 'Verifying…' : 'Verify and complete account setup'}
             >
               {isLoading ? (
