@@ -1,12 +1,13 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { User } from '@/types'
-import { apiLogin, apiRegister, apiLogout, apiGetCurrentUser } from '@/lib/api'
+import { apiLogin, apiRegister, apiLogout, apiGetCurrentUser, apiSupabaseTokenExchange } from '@/lib/api'
 
 interface AuthContextType {
   user: User | null
   isLoading: boolean
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
+  loginWithSupabaseToken: (accessToken: string, email: string, name: string) => Promise<void>
   signup: (email: string, password: string, displayName: string) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -87,6 +88,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const loginWithSupabaseToken = useCallback(
+    async (accessToken: string, email: string, name: string) => {
+      setIsLoading(true)
+      try {
+        const res = await apiSupabaseTokenExchange(accessToken, email, name)
+        if (res && res.user) {
+          setUser({
+            id: res.user.id,
+            email: res.user.email,
+            displayName: res.user.name,
+            avatarUrl: null,
+            linkedinConnected: false,
+            createdAt: res.user.createdAt,
+          })
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    []
+  )
+
   const signup = useCallback(async (arg1: string, arg2: string, arg3: string) => {
     setIsLoading(true)
     try {
@@ -132,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
+        loginWithSupabaseToken,
         signup,
         logout,
         refreshUser,

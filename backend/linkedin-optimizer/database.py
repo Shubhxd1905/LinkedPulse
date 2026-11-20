@@ -1191,3 +1191,58 @@ def delete_linkedin_connection(user_id: str) -> bool:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM linkedin_connections WHERE user_id = ?;", (user_id,))
         return cursor.rowcount > 0
+
+
+def get_or_create_supabase_user(email: str, name: str) -> Dict[str, Any]:
+    """
+    Retrieves a user by email (case-insensitive). If none exists, creates one
+    with an empty password_hash (Supabase-authenticated users have no local password).
+    Returns a safe user dict (no password_hash).
+    """
+    clean_email = email.strip().lower()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, name, email, created_at, updated_at FROM users WHERE email = ?;",
+            (clean_email,)
+        )
+        row = cursor.fetchone()
+        if row:
+            return {
+                "id": row["id"],
+                "name": row["name"],
+                "email": row["email"],
+                "createdAt": row["created_at"],
+                "updatedAt": row["updated_at"],
+            }
+
+    # User doesn't exist — create without a password
+    user_id = str(uuid.uuid4())
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    display_name = (name or clean_email.split("@")[0]).strip() or clean_email
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO users (id, name, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?);",
+            (user_id, display_name, clean_email, "", now, now),
+        )
+        conn.commit()
+    # Bootstrap default profile for the new user
+    upsert_user_profile(user_id, {
+        "headline": "",
+        "about": "",
+        "skills": [],
+        "education": "",
+        "experience": [],
+        "projects": "",
+        "experienceStatus": "fresher",
+        "careerIntent": "current-field",
+    })
+    return {
+        "id": user_id,
+        "name": display_name,
+        "email": clean_email,
+        "createdAt": now,
+        "updatedAt": now,
+    }
+

@@ -930,6 +930,64 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
         # ---------------------------------------------------------------------
         # Phase 6: Authenticated User Data Endpoints
         # ---------------------------------------------------------------------
+        elif path == "/api/auth/supabase-token":
+            # Exchange a Supabase access token for a LinkedPulse backend session.
+            # The frontend calls this after Supabase OTP verification or Google OAuth.
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+            if not check_rate_limit(f"auth:{client_ip}", limit=60, window=60):
+                self._send_json({
+                    "status": "error",
+                    "code": "RATE_LIMITED",
+                    "message": "Too many authentication requests. Please wait a minute before trying again."
+                }, status=429)
+                return
+
+            access_token = str(body.get("access_token") or "").strip()
+            email = str(body.get("email") or "").strip()
+            name = str(body.get("name") or "").strip()
+
+            if not access_token or not email:
+                self._send_json({
+                    "status": "error",
+                    "code": "MISSING_FIELDS",
+                    "message": "access_token and email are required."
+                }, status=400)
+                return
+
+            # Verify the Supabase JWT (optional but recommended in production).
+            # Set SUPABASE_JWT_SECRET in Render env vars from your Supabase project settings.
+            supabase_jwt_secret = os.environ.get("SUPABASE_JWT_SECRET", "").strip()
+            if supabase_jwt_secret:
+                try:
+                    import jwt as pyjwt
+                    pyjwt.decode(
+                        access_token,
+                        supabase_jwt_secret,
+                        algorithms=["HS256"],
+                        options={"verify_aud": False},
+                    )
+                except Exception as jwt_err:
+                    self._send_json({
+                        "status": "error",
+                        "code": "INVALID_TOKEN",
+                        "message": "Supabase token verification failed."
+                    }, status=401)
+                    return
+            # If SUPABASE_JWT_SECRET is not set, we skip JWT verification.
+            # In production, always set SUPABASE_JWT_SECRET.
+
+            user = database.get_or_create_supabase_user(email, name)
+            raw_token, _ = auth_service.create_user_session(user["id"])
+            is_https = self.headers.get("X-Forwarded-Proto") == "https"
+            cookie = auth_service.format_session_cookie(raw_token, is_secure=is_https)
+            self._send_json({
+                "status": "success",
+                "message": "Signed in successfully.",
+                "user": user,
+                "sessionToken": raw_token,
+            }, status=200, cookies=[cookie])
+            return
+
         elif path == "/api/user/profile":
             user = self.get_authenticated_user()
             if not user:

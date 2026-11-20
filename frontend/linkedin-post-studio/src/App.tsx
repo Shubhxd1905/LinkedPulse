@@ -4,6 +4,7 @@ import { LandingPage } from '@/components/landing/LandingPage'
 import { AuthGuard } from '@/components/auth/AuthGuard'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { SignupForm } from '@/components/auth/SignupForm'
+import { AuthCallback } from '@/components/auth/AuthCallback'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { GuestOverviewPage } from '@/pages/GuestOverviewPage'
@@ -32,6 +33,7 @@ export function App() {
       {/* Public Auth Pages */}
       <Route path="/login" element={<LoginForm />} />
       <Route path="/signup" element={<SignupForm />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
 
       {/* 2. Dashboard (Protected) */}
       <Route path="/dashboard" element={renderProtected(<DashboardPage />)} />

@@ -228,6 +228,17 @@ export async function apiLogin(email: string, password: string): Promise<AuthRes
   })
 }
 
+export async function apiSupabaseTokenExchange(
+  accessToken: string,
+  email: string,
+  name: string
+): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/auth/supabase-token', {
+    method: 'POST',
+    body: { access_token: accessToken, email, name },
+  })
+}
+
 export async function apiLogout(): Promise<{ status: string; message: string }> {
   return apiFetch<{ status: string; message: string }>('/auth/logout', {
     method: 'POST',
