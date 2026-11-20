@@ -5,7 +5,7 @@
  * Supabase access token with our backend to get a backend session cookie.
  */
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowRight, RefreshCw, ArrowLeft } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
 import { AuthGateHeader, useAuthRedirectTarget } from '@/components/auth/AuthGateHeader';
+import { buildAuthUrl } from '@/lib/authRedirect';
 
 type Step = 'email' | 'otp';
 
@@ -41,7 +42,7 @@ export function LoginForm() {
   const { loginWithSupabaseToken, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { redirectTo } = useAuthRedirectTarget();
+  const { redirectTo, authRequired, rawRedirectParam } = useAuthRedirectTarget();
 
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
@@ -261,6 +262,17 @@ export function LoginForm() {
               )}
               Continue with Google
             </button>
+
+            {/* Footer Link */}
+            <p className="mt-6 text-center text-sm text-slate-300">
+              Don&apos;t have an account?{' '}
+              <Link
+                to={buildAuthUrl('/signup', rawRedirectParam, authRequired)}
+                className="font-semibold text-indigo-300 transition-colors hover:text-indigo-200 focus-visible:outline-none"
+              >
+                Create Free Account
+              </Link>
+            </p>
           </div>
         ) : (
           /* ── OTP Step ─────────────────────────────────────────────────── */
