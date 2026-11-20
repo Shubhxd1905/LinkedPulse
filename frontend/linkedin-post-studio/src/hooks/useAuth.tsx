@@ -66,28 +66,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
     // Listen to Supabase auth state change (e.g. from magic links or token redirects)
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return
-      if (session?.access_token && session.user?.email) {
-        try {
-          const email = session.user.email
-          const name =
-            session.user.user_metadata?.full_name ||
-            session.user.user_metadata?.name ||
-            email.split('@')[0]
-          const res = await apiSupabaseTokenExchange(session.access_token, email, name)
-          if (mounted && res?.user) {
-            setUser({
-              id: res.user.id,
-              email: res.user.email,
-              displayName: res.user.name,
-              avatarUrl: null,
-              linkedinConnected: false,
-              createdAt: res.user.createdAt,
-            })
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        return
+      }
+      // Only exchange token on explicit new SIGNED_IN event (such as magic link click or OAuth redirect)
+      if (event === 'SIGNED_IN') {
+        if (session?.access_token && session.user?.email) {
+          try {
+            const email = session.user.email
+            const name =
+              session.user.user_metadata?.full_name ||
+              session.user.user_metadata?.name ||
+              email.split('@')[0]
+            const res = await apiSupabaseTokenExchange(session.access_token, email, name)
+            if (mounted && res?.user) {
+              setUser({
+                id: res.user.id,
+                email: res.user.email,
+                displayName: res.user.name,
+                avatarUrl: null,
+                linkedinConnected: false,
+                createdAt: res.user.createdAt,
+              })
+            }
+          } catch {
+            // ignore error if exchange fails or token already used
           }
-        } catch {
-          // ignore error if exchange fails or token already used
         }
       }
     })
@@ -169,7 +176,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await apiLogout()
+      // Clear both backend session cookie and Supabase client-side session concurrently
+      await Promise.allSettled([
+        apiLogout(),
+        supabase.auth.signOut(),
+      ])
     } catch {
       // Ignore network errors on logout
     } finally {
