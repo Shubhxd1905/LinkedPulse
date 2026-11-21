@@ -930,6 +930,33 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
         # ---------------------------------------------------------------------
         # Phase 6: Authenticated User Data Endpoints
         # ---------------------------------------------------------------------
+        elif path == "/api/auth/check-email":
+            # Endpoint to verify if an email is already registered before allowing signup
+            client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
+            if not check_rate_limit(f"check_email:{client_ip}", limit=120, window=60):
+                self._send_json({
+                    "status": "error",
+                    "code": "RATE_LIMITED",
+                    "message": "Too many requests. Please wait a moment."
+                }, status=429)
+                return
+
+            email = str(body.get("email") or "").strip().lower()
+            if not email or "@" not in email:
+                self._send_json({
+                    "status": "error",
+                    "code": "INVALID_EMAIL",
+                    "message": "A valid email is required."
+                }, status=400)
+                return
+
+            existing = database.get_user_by_email(email)
+            self._send_json({
+                "status": "success",
+                "exists": existing is not None
+            }, status=200)
+            return
+
         elif path == "/api/auth/supabase-token":
             # Exchange a Supabase access token for a LinkedPulse backend session.
             # The frontend calls this after Supabase OTP verification or Google OAuth.

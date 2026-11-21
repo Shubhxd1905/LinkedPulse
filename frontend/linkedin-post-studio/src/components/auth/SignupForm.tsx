@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
+import { apiCheckEmail } from '@/lib/api';
 import { AuthGateHeader, useAuthRedirectTarget } from '@/components/auth/AuthGateHeader';
 import { buildAuthUrl } from '@/lib/authRedirect';
 
@@ -49,6 +50,7 @@ export function SignupForm() {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [existingAccountError, setExistingAccountError] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -97,7 +99,25 @@ export function SignupForm() {
       return;
     }
     setIsLoading(true);
+    setExistingAccountError(false);
     try {
+      // 1. Check if an account already exists for this email
+      try {
+        const check = await apiCheckEmail(email.trim());
+        if (check?.exists) {
+          setExistingAccountError(true);
+          toast({
+            title: 'Account already exists',
+            description: 'An account with this email address already exists. Please sign in instead.',
+            variant: 'warning',
+          });
+          setIsLoading(false);
+          return;
+        }
+      } catch {
+        // If check endpoint is unreachable, fallback to Supabase
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
@@ -202,6 +222,22 @@ export function SignupForm() {
 
         {step === 'details' ? (
           <div className="space-y-5" aria-label="Sign up form">
+            {/* Account Already Exists Banner */}
+            {existingAccountError && (
+              <div
+                role="alert"
+                className="flex items-center justify-between rounded-xl border border-amber-400/40 bg-amber-500/15 p-3 text-xs text-amber-200"
+              >
+                <span>An account with this email already exists.</span>
+                <Link
+                  to={buildAuthUrl('/login', rawRedirectParam, authRequired)}
+                  className="font-bold underline text-white hover:text-amber-100 transition-colors ml-2"
+                >
+                  Sign In &rarr;
+                </Link>
+              </div>
+            )}
+
             {/* Display Name input */}
             <div className="space-y-1.5">
               <label htmlFor="signup-name" className="block text-sm font-medium text-slate-200">
@@ -240,7 +276,10 @@ export function SignupForm() {
                   placeholder="you@example.com"
                   className="pl-10"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (existingAccountError) setExistingAccountError(false);
+                  }}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSendOtp(); }}
                   aria-label="Email address"
                   autoComplete="email"

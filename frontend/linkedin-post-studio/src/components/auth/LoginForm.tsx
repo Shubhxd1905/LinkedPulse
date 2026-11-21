@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
+import { apiCheckEmail } from '@/lib/api';
 import { AuthGateHeader, useAuthRedirectTarget } from '@/components/auth/AuthGateHeader';
 import { buildAuthUrl } from '@/lib/authRedirect';
 
@@ -49,6 +50,7 @@ export function LoginForm() {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [accountNotFoundError, setAccountNotFoundError] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -93,15 +95,42 @@ export function LoginForm() {
       return;
     }
     setIsLoading(true);
+    setAccountNotFoundError(false);
     try {
+      // 1. Verify if an account exists for this email
+      try {
+        const check = await apiCheckEmail(email.trim());
+        if (check && check.exists === false) {
+          setAccountNotFoundError(true);
+          toast({
+            title: 'Account not found',
+            description: 'No account found with this email. Please create an account first.',
+            variant: 'warning',
+          });
+          setIsLoading(false);
+          return;
+        }
+      } catch {
+        // Fallback to Supabase check
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          shouldCreateUser: true,
+          shouldCreateUser: false, // Strictly do NOT allow creating new accounts on Login
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
-      if (error) throw error;
+      if (error) {
+        if (
+          error.message?.toLowerCase().includes('signups not allowed') ||
+          error.message?.toLowerCase().includes('user not found')
+        ) {
+          setAccountNotFoundError(true);
+          throw new Error('No account found with this email. Please create a free account first.');
+        }
+        throw error;
+      }
       setStep('otp');
       setCooldown(60);
       toast({
@@ -111,7 +140,7 @@ export function LoginForm() {
       });
     } catch (err) {
       toast({
-        title: 'Failed to send code',
+        title: 'Failed to sign in',
         description: err instanceof Error ? err.message : 'Please try again.',
         variant: 'error',
       });
@@ -194,6 +223,22 @@ export function LoginForm() {
 
         {step === 'email' ? (
           <div className="space-y-5" aria-label="Sign in form">
+            {/* Account Not Found Banner */}
+            {accountNotFoundError && (
+              <div
+                role="alert"
+                className="flex items-center justify-between rounded-xl border border-indigo-400/40 bg-indigo-500/15 p-3 text-xs text-indigo-200"
+              >
+                <span>No account found with this email.</span>
+                <Link
+                  to={buildAuthUrl('/signup', rawRedirectParam, authRequired)}
+                  className="font-bold underline text-white hover:text-indigo-100 transition-colors ml-2"
+                >
+                  Create Free Account &rarr;
+                </Link>
+              </div>
+            )}
+
             {/* Email input */}
             <div className="space-y-1.5">
               <label htmlFor="login-email" className="block text-sm font-medium text-slate-200">
@@ -209,7 +254,10 @@ export function LoginForm() {
                   placeholder="you@example.com"
                   className="pl-10"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (accountNotFoundError) setAccountNotFoundError(false);
+                  }}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSendOtp(); }}
                   aria-label="Email address"
                   autoComplete="email"

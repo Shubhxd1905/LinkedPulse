@@ -228,6 +228,13 @@ export async function apiLogin(email: string, password: string): Promise<AuthRes
   })
 }
 
+export async function apiCheckEmail(email: string): Promise<{ status: string; exists: boolean }> {
+  return apiFetch<{ status: string; exists: boolean }>('/auth/check-email', {
+    method: 'POST',
+    body: { email },
+  })
+}
+
 export async function apiSupabaseTokenExchange(
   accessToken: string,
   email: string,
