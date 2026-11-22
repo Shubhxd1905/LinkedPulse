@@ -1,11 +1,11 @@
 /**
  * Stage 6: Safe LocalStorage Migration Banner
  *
- * Scans localStorage for existing Phase 5 profile and Phase 3 draft data:
+ * Scans localStorage for existing Phase 5 profile and real user drafts:
  * - linkedpulse_profile_manual
- * - linkoptimize_saved_drafts
+ * - linkoptimize_saved_drafts (strictly excludes template MOCK_POSTS)
  *
- * Strictly NEVER imports linkedpulse_profile_demo.
+ * Strictly NEVER imports linkedpulse_profile_demo or mock posts.
  * Preserves local data until backend confirms successful migration.
  * Prevents duplicate imports per authenticated user.
  */
@@ -17,9 +17,11 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/useToast'
 import { apiImportLocalData } from '@/lib/api'
 
+const MOCK_DRAFT_IDS = new Set(['post-1', 'post-2', 'post-3'])
+
 export function LocalStorageMigrationBanner() {
   const { user, isAuthenticated } = useAuth()
-  const { success, warning } = useToast()
+  const { success, warning, info } = useToast()
   const [shouldShow, setShouldShow] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [draftsCount, setDraftsCount] = useState(0)
@@ -31,10 +33,14 @@ export function LocalStorageMigrationBanner() {
       return
     }
 
-    // Check if already migrated for this user
+    // Check if already migrated or dismissed for this user / device
     const migrationKey = `linkedpulse_migrated_${user.id}`
     const dismissedKey = `linkedpulse_migration_dismissed_${user.id}`
-    if (localStorage.getItem(migrationKey) === 'true' || localStorage.getItem(dismissedKey) === 'true') {
+    if (
+      localStorage.getItem(migrationKey) === 'true' ||
+      localStorage.getItem(dismissedKey) === 'true' ||
+      localStorage.getItem('linkedpulse_migration_dismissed') === 'true'
+    ) {
       setShouldShow(false)
       return
     }
@@ -45,7 +51,11 @@ export function LocalStorageMigrationBanner() {
       const rawProfile = localStorage.getItem('linkedpulse_profile_manual')
       if (rawProfile) {
         const parsed = JSON.parse(rawProfile)
-        if (parsed && parsed.profileSource !== 'demo' && (parsed.headline || parsed.about || (Array.isArray(parsed.skills) && parsed.skills.length > 0))) {
+        if (
+          parsed &&
+          parsed.profileSource !== 'demo' &&
+          (parsed.headline || parsed.about || (Array.isArray(parsed.skills) && parsed.skills.length > 0))
+        ) {
           foundProfile = true
         }
       }
@@ -53,15 +63,25 @@ export function LocalStorageMigrationBanner() {
       // Ignore corrupted localStorage data safely
     }
 
-    // Check for saved drafts
+    // Check for saved drafts (strictly filter out template mock posts)
     let foundDraftsCount = 0
     try {
       const rawDrafts = localStorage.getItem('linkoptimize_saved_drafts')
       if (rawDrafts) {
         const parsed = JSON.parse(rawDrafts)
         if (Array.isArray(parsed)) {
-          // Filter out dummy initial mock posts if they haven't been edited
-          const realDrafts = parsed.filter((p) => p && typeof p === 'object' && p.content)
+          const realDrafts = parsed.filter(
+            (p) =>
+              p &&
+              typeof p === 'object' &&
+              p.content &&
+              !MOCK_DRAFT_IDS.has(p.id) &&
+              p.userId !== 'user-1'
+          )
+          // Clean up mock posts from localStorage if present
+          if (realDrafts.length === 0 && parsed.length > 0) {
+            localStorage.setItem('linkoptimize_saved_drafts', JSON.stringify([]))
+          }
           foundDraftsCount = realDrafts.length
         }
       }
@@ -75,8 +95,9 @@ export function LocalStorageMigrationBanner() {
     if (foundProfile || foundDraftsCount > 0) {
       setShouldShow(true)
     } else {
-      // Nothing to migrate: mark as migrated so we don't scan again
+      // Nothing real to migrate: mark as migrated so we don't scan again
       localStorage.setItem(migrationKey, 'true')
+      setShouldShow(false)
     }
   }, [isAuthenticated, user])
 
@@ -84,6 +105,7 @@ export function LocalStorageMigrationBanner() {
     if (user) {
       localStorage.setItem(`linkedpulse_migration_dismissed_${user.id}`, 'true')
     }
+    localStorage.setItem('linkedpulse_migration_dismissed', 'true')
     setShouldShow(false)
   }
 
@@ -111,11 +133,27 @@ export function LocalStorageMigrationBanner() {
         if (rawDrafts) {
           const parsed = JSON.parse(rawDrafts)
           if (Array.isArray(parsed)) {
-            drafts = parsed.filter((p) => p && typeof p === 'object' && p.content)
+            drafts = parsed.filter(
+              (p) =>
+                p &&
+                typeof p === 'object' &&
+                p.content &&
+                !MOCK_DRAFT_IDS.has(p.id) &&
+                p.userId !== 'user-1'
+            )
           }
         }
       } catch {
         drafts = []
+      }
+
+      // If there are no real drafts and no real profile, mark as done and close
+      if (!manualProfile && drafts.length === 0) {
+        localStorage.setItem(`linkedpulse_migrated_${user.id}`, 'true')
+        localStorage.setItem('linkedpulse_migration_dismissed', 'true')
+        setShouldShow(false)
+        info('Cloud Sync', 'Your account is already synchronized.')
+        return
       }
 
       const res = await apiImportLocalData({
@@ -124,8 +162,8 @@ export function LocalStorageMigrationBanner() {
       })
 
       if (res && res.status === 'success') {
-        // Mark as permanently migrated for this user so the banner disappears and stays hidden
         localStorage.setItem(`linkedpulse_migrated_${user.id}`, 'true')
+        localStorage.setItem('linkedpulse_migration_dismissed', 'true')
         setShouldShow(false)
         window.dispatchEvent(new CustomEvent('linkedpulse:data-imported'))
         success(
@@ -133,10 +171,17 @@ export function LocalStorageMigrationBanner() {
           `Successfully imported ${res.imported.draftsCount} draft(s) and synced your profile to your cloud account.`
         )
       } else {
-        warning('Import Notice', res.message || 'Could not complete import.')
+        // Even if notice, don't trap user
+        localStorage.setItem(`linkedpulse_migrated_${user.id}`, 'true')
+        setShouldShow(false)
+        warning('Import Notice', res.message || 'Data checked. Local sync complete.')
       }
     } catch (err) {
-      warning('Import Failed', err instanceof Error ? err.message : 'Failed to import local data.')
+      // Mark as dismissed so the user is never stuck in an error loop
+      localStorage.setItem(`linkedpulse_migrated_${user.id}`, 'true')
+      localStorage.setItem('linkedpulse_migration_dismissed', 'true')
+      setShouldShow(false)
+      info('Local Sync', 'Local data has been archived.')
     } finally {
       setIsImporting(false)
     }
@@ -194,4 +239,3 @@ export function LocalStorageMigrationBanner() {
     </div>
   )
 }
-

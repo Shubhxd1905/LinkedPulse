@@ -18,12 +18,23 @@ export class ApiError extends Error {
 async function apiFetch<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const { method = 'GET', body, headers = {} } = options
 
+  const authHeaders: Record<string, string> = {}
+  try {
+    const token = localStorage.getItem('linkedpulse_session_token')
+    if (token && !headers['Authorization']) {
+      authHeaders['Authorization'] = `Bearer ${token}`
+    }
+  } catch {
+    // Ignore localStorage failures
+  }
+
   const config: RequestInit = {
     method,
     credentials: 'include', // Support HttpOnly secure session cookies
     headers: {
       'Content-Type': 'application/json',
       'X-Requested-With': 'XMLHttpRequest', // CSRF protection
+      ...authHeaders,
       ...headers,
     },
   }
@@ -216,17 +227,25 @@ export interface AuthResponse {
 }
 
 export async function apiRegister(name: string, email: string, password: string): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>('/auth/register', {
+  const res = await apiFetch<AuthResponse>('/auth/register', {
     method: 'POST',
     body: { name, email, password },
   })
+  if (res?.sessionToken) {
+    try { localStorage.setItem('linkedpulse_session_token', res.sessionToken) } catch {}
+  }
+  return res
 }
 
 export async function apiLogin(email: string, password: string): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>('/auth/login', {
+  const res = await apiFetch<AuthResponse>('/auth/login', {
     method: 'POST',
     body: { email, password },
   })
+  if (res?.sessionToken) {
+    try { localStorage.setItem('linkedpulse_session_token', res.sessionToken) } catch {}
+  }
+  return res
 }
 
 export async function apiCheckEmail(email: string): Promise<{ status: string; exists: boolean }> {
@@ -241,13 +260,18 @@ export async function apiSupabaseTokenExchange(
   email: string,
   name: string
 ): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>('/auth/supabase-token', {
+  const res = await apiFetch<AuthResponse>('/auth/supabase-token', {
     method: 'POST',
     body: { access_token: accessToken, email, name },
   })
+  if (res?.sessionToken) {
+    try { localStorage.setItem('linkedpulse_session_token', res.sessionToken) } catch {}
+  }
+  return res
 }
 
 export async function apiLogout(): Promise<{ status: string; message: string }> {
+  try { localStorage.removeItem('linkedpulse_session_token') } catch {}
   return apiFetch<{ status: string; message: string }>('/auth/logout', {
     method: 'POST',
     body: {},

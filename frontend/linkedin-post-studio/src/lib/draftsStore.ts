@@ -6,21 +6,19 @@ const DRAFTS_STORAGE_KEY = 'linkoptimize_saved_drafts'
 
 /**
  * Retrieve all saved drafts from localStorage.
- * Initializes with MOCK_POSTS if storage is currently unseeded.
  */
 export function getSavedDrafts(): Post[] {
-  if (typeof window === 'undefined') return MOCK_POSTS
+  if (typeof window === 'undefined') return []
   try {
     const raw = localStorage.getItem(DRAFTS_STORAGE_KEY)
     if (!raw) {
-      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(MOCK_POSTS))
-      return MOCK_POSTS
+      return []
     }
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : MOCK_POSTS
+    return Array.isArray(parsed) ? parsed : []
   } catch (e) {
     console.error('Failed to load saved drafts from localStorage:', e)
-    return MOCK_POSTS
+    return []
   }
 }
 
