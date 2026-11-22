@@ -633,15 +633,23 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
 
               {/* Context Note */}
               <div>
-                <label className="block text-xs font-bold text-slate-200 mb-1.5">
-                  Additional Context / Angle (Optional)
-                </label>
+                <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                  <label className="block text-xs font-bold text-slate-200">
+                    Additional Context / Angle
+                  </label>
+                  <span className="text-[11px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-400/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    ✨ Recommended for precise results
+                  </span>
+                </div>
                 <Textarea
                   value={contextNote}
                   onChange={(e) => setContextNote(e.target.value)}
                   rows={3}
-                  placeholder="e.g. Focus on lessons learned, our team's perseverance, or call for feedback..."
+                  placeholder="e.g. Practicing C++ coding on YouTube, lessons learned, or key takeaways..."
                 />
+                <p className="text-[11px] text-slate-300 mt-1">
+                  Describe what is happening in the image or the perspective you want to highlight for the most accurate post.
+                </p>
               </div>
 
               {/* Generate Action Button */}
