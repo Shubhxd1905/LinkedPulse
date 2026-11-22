@@ -1,8 +1,9 @@
 /**
  * AuthCallback.tsx
- * Handles the OAuth redirect from Supabase (Google Sign-In).
+ * Handles the OAuth redirect from Supabase (Google Sign-In + magic links).
  * Supabase places auth tokens in the URL hash after Google redirect.
  * This page picks them up, exchanges them with the backend, and navigates home.
+ * If the user came from /signup but already has an account, shows a "Welcome back" notice.
  */
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -28,12 +29,34 @@ export function AuthCallback() {
           user?.user_metadata?.name ||
           email.split('@')[0];
 
-        await loginWithSupabaseToken(access_token, email, name);
-        toast({
-          title: 'Signed in successfully!',
-          description: `Welcome, ${name}!`,
-          variant: 'success',
-        });
+        // Exchange token with backend — returns { isNewUser } flag
+        const { isNewUser } = await loginWithSupabaseToken(access_token, email, name);
+
+        // Detect if user came from signup page via sessionStorage marker
+        const fromSignup = sessionStorage.getItem('auth_origin') === 'signup';
+        sessionStorage.removeItem('auth_origin');
+
+        if (isNewUser) {
+          toast({
+            title: 'Welcome to LinkedPulse! 🎉',
+            description: `Your account has been created. Let's get started, ${name}!`,
+            variant: 'success',
+          });
+        } else if (fromSignup) {
+          // Returning user clicked "Continue with Google" on the CREATE ACCOUNT page
+          toast({
+            title: 'Account already exists',
+            description: `You already have an account with ${email}. You've been signed in.`,
+            variant: 'warning',
+          });
+        } else {
+          toast({
+            title: 'Welcome back!',
+            description: `Signed in as ${name}.`,
+            variant: 'success',
+          });
+        }
+
         navigate('/dashboard', { replace: true });
       } catch (err) {
         toast({

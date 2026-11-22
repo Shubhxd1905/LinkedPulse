@@ -194,6 +194,9 @@ export function SignupForm() {
     }
     setIsGoogleLoading(true);
     try {
+      // Mark that Google OAuth was initiated from the signup page
+      // AuthCallback uses this to show the right message for returning users
+      sessionStorage.setItem('auth_origin', 'signup');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -202,6 +205,7 @@ export function SignupForm() {
       });
       if (error) throw error;
     } catch (err) {
+      sessionStorage.removeItem('auth_origin');
       toast({
         title: 'Google sign-in failed',
         description: err instanceof Error ? err.message : 'Please try again.',

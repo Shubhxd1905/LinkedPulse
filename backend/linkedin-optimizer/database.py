@@ -1214,6 +1214,7 @@ def get_or_create_supabase_user(email: str, name: str) -> Dict[str, Any]:
                 "email": row["email"],
                 "createdAt": row["created_at"],
                 "updatedAt": row["updated_at"],
+                "isNewUser": False,
             }
 
     # User doesn't exist — create without a password
@@ -1244,5 +1245,6 @@ def get_or_create_supabase_user(email: str, name: str) -> Dict[str, Any]:
         "email": clean_email,
         "createdAt": now,
         "updatedAt": now,
+        "isNewUser": True,
     }
 

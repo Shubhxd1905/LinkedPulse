@@ -211,6 +211,7 @@ export interface AuthResponse {
     createdAt: string
     updatedAt: string
   }
+  isNewUser?: boolean
   sessionToken?: string
 }
 

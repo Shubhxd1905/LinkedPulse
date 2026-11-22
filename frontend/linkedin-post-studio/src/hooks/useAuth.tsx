@@ -8,7 +8,7 @@ interface AuthContextType {
   isLoading: boolean
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
-  loginWithSupabaseToken: (accessToken: string, email: string, name: string) => Promise<void>
+  loginWithSupabaseToken: (accessToken: string, email: string, name: string) => Promise<{ isNewUser: boolean }>
   signup: (email: string, password: string, displayName: string) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const loginWithSupabaseToken = useCallback(
-    async (accessToken: string, email: string, name: string) => {
+    async (accessToken: string, email: string, name: string): Promise<{ isNewUser: boolean }> => {
       setIsLoading(true)
       try {
         const res = await apiSupabaseTokenExchange(accessToken, email, name)
@@ -139,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             createdAt: res.user.createdAt,
           })
         }
+        return { isNewUser: res?.isNewUser ?? false }
       } finally {
         setIsLoading(false)
       }

@@ -1004,6 +1004,7 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
             # In production, always set SUPABASE_JWT_SECRET.
 
             user = database.get_or_create_supabase_user(email, name)
+            is_new_user = user.pop("isNewUser", False)
             raw_token, _ = auth_service.create_user_session(user["id"])
             is_https = self.headers.get("X-Forwarded-Proto") == "https"
             cookie = auth_service.format_session_cookie(raw_token, is_secure=is_https)
@@ -1011,6 +1012,7 @@ class LinkedPulseHandler(SimpleHTTPRequestHandler):
                 "status": "success",
                 "message": "Signed in successfully.",
                 "user": user,
+                "isNewUser": is_new_user,
                 "sessionToken": raw_token,
             }, status=200, cookies=[cookie])
             return
