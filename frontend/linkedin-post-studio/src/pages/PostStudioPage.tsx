@@ -59,20 +59,16 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Form Inputs
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80'
-  )
-  const [imageFileName, setImageFileName] = useState<string | null>('analytics-dashboard.png')
-  const [contextNote, setContextNote] = useState(
-    'Key metrics from our latest architecture rewrite: 70% decrease in latency and 1M API calls reached.'
-  )
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageFileName, setImageFileName] = useState<string | null>(null)
+  const [contextNote, setContextNote] = useState('')
   const [tone, setTone] = useState<PostTone>('storytelling')
   const [length, setLength] = useState<PostLength>('medium')
 
   // Generated Post State
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationStep, setGenerationStep] = useState('')
-  const [hasGenerated, setHasGenerated] = useState(true)
+  const [hasGenerated, setHasGenerated] = useState(false)
   const [copied, setCopied] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
@@ -96,36 +92,18 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
   }, [])
 
   // AI Generation Output & Anti-Hallucination Metadata
-  const [visualSummary, setVisualSummary] = useState<string>(
-    'Metrics dashboard showing low server response times and daily transaction throughput reaching 1M calls.'
-  )
-  const [alternativeHooks, setAlternativeHooks] = useState<string[]>([
-    'We just hit 1,000,000 API calls per day. 🚀',
-    'Most scalability bottlenecks aren\'t hardware problems — they are database access pattern problems.',
-    'A year ago our system collapsed at 10K requests. Here is the architecture we rebuilt:',
-  ])
-  const [hashtags, setHashtags] = useState<string[]>([
-    'SoftwareEngineering',
-    'CloudArchitecture',
-    'TechLeadership',
-    'WebDev',
-    'SystemDesign',
-  ])
+  const [visualSummary, setVisualSummary] = useState<string>('')
+  const [alternativeHooks, setAlternativeHooks] = useState<string[]>([])
+  const [hashtags, setHashtags] = useState<string[]>([])
   const [aiMetadata, setAiMetadata] = useState<{
     engineUsed: string
     model: string
     isAiPowered: boolean
     fallbackReason?: string
-  } | null>({
-    engineUsed: 'OpenRouter AI (openrouter/free)',
-    model: 'openrouter/free',
-    isAiPowered: true,
-  })
+  } | null>(null)
 
   // Post Content
-  const [generatedContent, setGeneratedContent] = useState<string>(
-    `We just hit 1,000,000 API calls per day. 🚀\n\nA year ago, our system could barely handle 10K.\n\nHere's what changed everything:\n\n→ We shifted from a monolith to decoupled event-driven services\n→ Implemented multi-tier caching that reduced database pressure by 70%\n→ Built resilient backpressure handling that stays calm under peak traffic\n\nThe biggest lesson? Scalability isn't just about throwing bigger servers at the problem. It's about respecting your data access patterns.\n\nBig shoutout to our engineering team for making this milestone happen.\n\nWhat's the #1 scalability mistake you've learned from?\n\n#SoftwareEngineering #CloudArchitecture #TechLeadership #WebDev #SystemDesign`
-  )
+  const [generatedContent, setGeneratedContent] = useState<string>('')
 
   // Load draft passed from DraftsHistoryPage navigation
   useEffect(() => {
@@ -212,6 +190,12 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
   const handleRemoveImage = () => {
     setImagePreview(null)
     setImageFileName(null)
+    setVisualSummary('')
+    setGeneratedContent('')
+    setAlternativeHooks([])
+    setHashtags([])
+    setContextNote('')
+    setHasGenerated(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -289,6 +273,10 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
 
   // Copy post to clipboard
   const handleCopyPost = () => {
+    if (!generatedContent.trim()) {
+      error('No Content', 'Please generate or write a post before copying.')
+      return
+    }
     navigator.clipboard.writeText(generatedContent)
     setCopied(true)
     success('Copied to clipboard', 'Ready to paste into LinkedIn feed.')
@@ -297,6 +285,10 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
 
   // Save to persistent localStorage drafts store
   const handleSaveDraft = () => {
+    if (!generatedContent.trim()) {
+      error('No Content', 'Please generate or write a post before saving a draft.')
+      return
+    }
     const saved = saveDraft({
       id: activeDraftId || undefined,
       content: generatedContent,
@@ -762,6 +754,7 @@ export function PostStudioPage({ stateMode = 'normal', onStateModeChange }: Post
                 value={generatedContent}
                 onChange={(e) => setGeneratedContent(e.target.value)}
                 rows={isExpanded ? 12 : 7}
+                placeholder="Upload an image and click 'Generate Viral Post' to generate your LinkedIn post here..."
                 className="border-white/10 focus:ring-indigo-400/40 p-3 text-[13px] leading-relaxed text-slate-100 bg-slate-950/35 resize-y font-sans"
               />
               <div className="flex items-center justify-between mt-1.5">
