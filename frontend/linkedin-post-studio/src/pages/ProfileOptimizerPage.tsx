@@ -1144,8 +1144,9 @@ export function ProfileOptimizerPage({
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                 LinkedIn Profile Optimizer
               </h1>
-              <Badge variant="linkedin" size="sm">
-                Phase 5 Active
+              <Badge variant="info" size="sm" className="gap-1">
+                <Sparkles className="h-3 w-3 text-indigo-300" />
+                AI Powered
               </Badge>
             </div>
             <p className="text-sm text-slate-200 mt-1">
@@ -1183,8 +1184,9 @@ export function ProfileOptimizerPage({
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
               LinkedIn Profile Optimizer
             </h1>
-            <Badge variant="linkedin" size="sm">
-              Phase 5 Active
+            <Badge variant="info" size="sm" className="gap-1">
+              <Sparkles className="h-3 w-3 text-indigo-300" />
+              AI Powered
             </Badge>
           </div>
           <p className="text-sm text-slate-200 mt-1">
