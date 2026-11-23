@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
-import { apiCheckEmail } from '@/lib/api';
 import { AuthGateHeader, useAuthRedirectTarget } from '@/components/auth/AuthGateHeader';
 import { buildAuthUrl } from '@/lib/authRedirect';
 
@@ -97,23 +96,6 @@ export function LoginForm() {
     setIsLoading(true);
     setAccountNotFoundError(false);
     try {
-      // 1. Verify if an account exists for this email
-      try {
-        const check = await apiCheckEmail(email.trim());
-        if (check && check.exists === false) {
-          setAccountNotFoundError(true);
-          toast({
-            title: 'Account not found',
-            description: 'No account found with this email. Please create an account first.',
-            variant: 'warning',
-          });
-          setIsLoading(false);
-          return;
-        }
-      } catch {
-        // Fallback to Supabase check
-      }
-
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
@@ -124,7 +106,8 @@ export function LoginForm() {
       if (error) {
         if (
           error.message?.toLowerCase().includes('signups not allowed') ||
-          error.message?.toLowerCase().includes('user not found')
+          error.message?.toLowerCase().includes('user not found') ||
+          error.message?.toLowerCase().includes('signup')
         ) {
           setAccountNotFoundError(true);
           throw new Error('No account found with this email. Please create a free account first.');

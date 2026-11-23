@@ -172,7 +172,16 @@ export function SignupForm() {
         email.trim().split('@')[0];
 
       await loginWithSupabaseToken(access_token, email.trim(), displayName);
-      toast({ title: 'Welcome to LinkedPulse!', description: 'Your account has been created successfully.', variant: 'success' });
+
+      const isNewSupabaseUser = user?.created_at
+        ? (Date.now() - new Date(user.created_at).getTime()) < 60000
+        : true;
+
+      if (isNewSupabaseUser) {
+        toast({ title: 'Welcome to LinkedPulse!', description: 'Your account has been created successfully.', variant: 'success' });
+      } else {
+        toast({ title: 'Welcome back!', description: 'You already had an account with this email. You have been signed in.', variant: 'success' });
+      }
       navigate(redirectTo, { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Invalid or expired code. Please try again.';
