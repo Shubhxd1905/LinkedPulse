@@ -1,4 +1,3 @@
-import { MOCK_POSTS } from './constants'
 import type { Post } from '@/types'
 import { apiGetUserDrafts, apiSaveUserDraft, apiDeleteUserDraft } from './api'
 

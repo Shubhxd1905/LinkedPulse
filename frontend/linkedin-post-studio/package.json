@@ -6,7 +6,7 @@
   "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "test": "node scripts/testProfileOptimizer.js && node scripts/testPostStudio.js && node scripts/testLinkedInPublish.js",
     "lint": "eslint ."
